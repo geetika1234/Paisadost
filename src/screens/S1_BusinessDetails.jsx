@@ -1,0 +1,418 @@
+import { useState } from 'react'
+import { useApp } from '../context/AppContext'
+import ScreenShell from '../components/ScreenShell'
+import RangeSlider from '../components/RangeSlider'
+import LoanCustomizeCard from '../components/LoanCustomizeCard'
+import { fmtINR } from '../logic/calculations'
+
+const BUSINESS_TYPES = [
+  { value: 'kirana',    label: '🛒 Kirana / General' },
+  { value: 'kapda',     label: '👔 Kapda / Textile' },
+  { value: 'pharma',    label: '💊 Medical / Pharma' },
+  { value: 'hardware',  label: '🔧 Hardware / Sanitary' },
+  { value: 'electrical',label: '⚡ Electrical' },
+  { value: 'mobile',    label: '📱 Mobile / Electronics' },
+  { value: 'shoes',     label: '👟 Shoes / Footwear' },
+  { value: 'dairy',     label: '🥛 Dairy / Bakery' },
+  { value: 'auto',      label: '🔩 Auto Parts' },
+  { value: 'salon',     label: '✂️ Salon / Beauty' },
+  { value: 'other',     label: '🏪 Aur Kuch' },
+]
+
+const AGE_OPTIONS = [
+  { value: '<1',  label: '< 1 saal' },
+  { value: '1-2', label: '1–2 saal' },
+  { value: '2-3', label: '2–3 saal' },
+  { value: '3-5', label: '3–5 saal' },
+  { value: '5+',  label: '5+ saal' },
+]
+
+function Section({ icon, title, open, onToggle, children, badge }) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm mb-3 overflow-hidden">
+      <button onClick={onToggle} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{icon}</span>
+          <span className="text-sm font-bold text-slate-700">{title}</span>
+          {badge && (
+            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">{badge}</span>
+          )}
+        </div>
+        <span className="text-slate-400 text-sm">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && <div className="px-4 pb-4 pt-1 border-t border-slate-50">{children}</div>}
+    </div>
+  )
+}
+
+function ToggleRow({ label, sub, value, onChange }) {
+  return (
+    <div className="flex justify-between items-center py-2">
+      <div>
+        <p className="text-sm font-semibold text-slate-700">{label}</p>
+        {sub && <p className="text-xs text-slate-400">{sub}</p>}
+      </div>
+      <button
+        onClick={() => onChange(!value)}
+        className={`w-14 h-7 rounded-full relative transition-colors flex-shrink-0 ${value ? 'bg-brand' : 'bg-slate-300'}`}
+      >
+        <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-8' : 'translate-x-1'}`} />
+      </button>
+    </div>
+  )
+}
+
+function NumberInput({ label, value, onChange, suffix = '' }) {
+  return (
+    <div className="mb-3">
+      <p className="text-xs font-semibold text-slate-500 mb-1">{label}</p>
+      <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden focus-within:border-brand">
+        <span className="px-3 py-2.5 bg-slate-50 text-slate-500 font-bold text-sm border-r border-slate-200">₹</span>
+        <input
+          type="number"
+          value={value}
+          onChange={e => onChange(Number(e.target.value) || 0)}
+          className="flex-1 px-3 py-2.5 text-sm font-bold text-slate-800 outline-none bg-white"
+        />
+        {suffix && <span className="px-3 py-2.5 bg-slate-50 text-slate-500 text-xs font-bold border-l border-slate-200">{suffix}</span>}
+      </div>
+    </div>
+  )
+}
+
+export default function S1_BusinessDetails() {
+  const { inputs, update, next, screen } = useApp()
+  const [open, setOpen] = useState({
+    business: true, sales: true, stock: true,
+    season: false, competition: false, udhari: false,
+    expenses: false, inflation: false, loan: false,
+  })
+  const toggle = key => setOpen(prev => ({ ...prev, [key]: !prev[key] }))
+
+  const monthlyProfit = inputs.monthlySales * inputs.profitMargin / 100
+  const totalDiscount = inputs.bulkDiscount + inputs.schemeDiscount + inputs.cashDiscount
+
+  return (
+    <ScreenShell
+      title="Customer Ki Details"
+      subtitle="Sab sections bharo — accurate result aayega"
+      step={screen}
+      total={7}
+      cta="Nuksaan Dekhte Hain →"
+      onCta={next}
+    >
+
+      {/* ── 1. Business Info ── */}
+      <Section icon="🏪" title="Business Ki Jaankari" open={open.business} onToggle={() => toggle('business')}>
+        <div className="grid grid-cols-2 gap-2 mb-4 mt-2">
+          {BUSINESS_TYPES.map(bt => (
+            <button
+              key={bt.value}
+              onClick={() => update('businessType', bt.value)}
+              className={`py-2.5 px-2 rounded-xl text-xs font-semibold text-left border-2 transition-all
+                ${inputs.businessType === bt.value
+                  ? 'border-brand bg-indigo-50 text-brand'
+                  : 'border-slate-200 text-slate-700'}`}
+            >
+              {bt.label}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-xs font-semibold text-slate-500 mb-2">Dukaan Kitne Saal Se Hai?</p>
+        <div className="flex gap-1.5">
+          {AGE_OPTIONS.map(a => (
+            <button
+              key={a.value}
+              onClick={() => update('businessAge', a.value)}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold text-center border-2 transition-all
+                ${inputs.businessAge === a.value
+                  ? 'border-brand bg-indigo-50 text-brand'
+                  : 'border-slate-200 text-slate-500'}`}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      {/* ── 2. Sales & Profit ── */}
+      <Section icon="💰" title="Bikri aur Faida" open={open.sales} onToggle={() => toggle('sales')}>
+        <div className="bg-indigo-50 rounded-xl p-3 mb-4 mt-2 flex justify-between items-center">
+          <div>
+            <p className="text-xs text-brand font-semibold">Monthly Profit</p>
+            <p className="text-2xl font-extrabold text-brand">{fmtINR(monthlyProfit)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-indigo-400">Roz ka</p>
+            <p className="text-lg font-bold text-indigo-500">₹{Math.round(monthlyProfit / 30).toLocaleString('en-IN')}</p>
+          </div>
+        </div>
+
+        <RangeSlider
+          label="Mahine Ki Bikri (Monthly Sales)"
+          value={inputs.monthlySales}
+          min={25000} max={5000000} step={25000}
+          onChange={v => update('monthlySales', v)}
+          hint="Ek mahine mein total kitni bikri hoti hai?"
+        />
+        <RangeSlider
+          label="Profit Margin"
+          value={inputs.profitMargin}
+          min={5} max={40} step={1}
+          onChange={v => update('profitMargin', v)}
+          format="pct"
+          hint="₹100 ki bikri mein kitna bacha? (gross margin)"
+        />
+      </Section>
+
+      {/* ── 3. Stock & Supplier ── */}
+      <Section icon="📦" title="Maal aur Supplier" open={open.stock} onToggle={() => toggle('stock')}
+        badge={`${totalDiscount}% total discount`}>
+
+        <RangeSlider
+          label="Mahine Mein Kitna Maal Kharidna"
+          value={inputs.monthlyStockPurchase}
+          min={10000} max={5000000} step={10000}
+          onChange={v => update('monthlyStockPurchase', v)}
+          hint="Supplier se ek mahine mein kitne ka maal mangwate ho?"
+        />
+        <RangeSlider
+          label="Maal Kitne Din Mein Bikta Hai?"
+          value={inputs.stockRotationDays}
+          min={3} max={180} step={1}
+          onChange={v => update('stockRotationDays', v)}
+          format="days"
+          hint="Ek batch maal lane se bikne tak kitne din lagte hain?"
+        />
+
+        <div className="border-t border-slate-100 pt-3 mt-1 mb-1">
+          <p className="text-xs font-bold text-slate-600 mb-3">Supplier Se Discount Milta Hai?</p>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            {[
+              { key: 'bulkDiscount',   label: 'Bulk' },
+              { key: 'schemeDiscount', label: 'Scheme' },
+              { key: 'cashDiscount',   label: 'Cash' },
+            ].map(d => (
+              <div key={d.key}>
+                <p className="text-xs text-slate-500 mb-1 text-center">{d.label}</p>
+                <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden focus-within:border-brand">
+                  <input
+                    type="number" min={0} max={20}
+                    value={inputs[d.key]}
+                    onChange={e => update(d.key, Number(e.target.value) || 0)}
+                    className="w-full px-2 py-2 text-sm font-bold text-center outline-none"
+                  />
+                  <span className="px-2 py-2 bg-slate-50 text-slate-500 text-xs font-bold border-l border-slate-200">%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="bg-amber-50 rounded-xl px-3 py-2 mb-3 flex justify-between items-center">
+            <span className="text-xs text-amber-700 font-semibold">Total Discount</span>
+            <span className="text-base font-extrabold text-amber-800">{totalDiscount}%</span>
+          </div>
+        </div>
+
+        <RangeSlider
+          label="Supplier Ne Maal Kitna Mehanga Kiya? (Saal Mein)"
+          value={inputs.stockPriceIncreasePct}
+          min={0} max={20} step={1}
+          onChange={v => update('stockPriceIncreasePct', v)}
+          format="pct"
+          hint="Pichle saal se maal ki keemat kitni % badhli?"
+        />
+      </Section>
+
+      {/* ── 4. Season ── */}
+      <Section icon="📅" title="Season / Tyohar ka Asar" open={open.season} onToggle={() => toggle('season')}>
+        <RangeSlider
+          label="Season Mein Kitni Zyada Bikri Hoti Hai?"
+          value={inputs.seasonUplift}
+          min={0} max={100} step={5}
+          onChange={v => update('seasonUplift', v)}
+          format="pct"
+          hint="Diwali / Eid / harvest mein normal se kitna % zyada bikri hoti hai?"
+        />
+        <RangeSlider
+          label="Saal Mein Kitne Mahine Season Hota Hai?"
+          value={inputs.seasonMonths}
+          min={1} max={6} step={1}
+          onChange={v => update('seasonMonths', v)}
+          format="months"
+          hint="Kitne mahine peak season rehta hai?"
+        />
+      </Section>
+
+      {/* ── 5. Competition ── */}
+      <Section icon="🏃" title="Competition aur Customers" open={open.competition} onToggle={() => toggle('competition')}>
+        <RangeSlider
+          label="Roz Kitne Customer Aate Hain?"
+          value={inputs.dailyWalkins}
+          min={5} max={500} step={5}
+          onChange={v => update('dailyWalkins', v)}
+          format="count"
+          hint="Average roz ka footfall (total customers per day)"
+        />
+        <RangeSlider
+          label="Kitne Log Competitor Ke Paas Jaate Hain?"
+          value={inputs.lostCustomersPct ?? 50}
+          min={0} max={100} step={5}
+          onChange={v => update('lostCustomersPct', v)}
+          format="pct"
+          hint={`${inputs.dailyWalkins} customers mein se ${Math.round((inputs.dailyWalkins ?? 0) * (inputs.lostCustomersPct ?? 50) / 100)} roz competitor ke paas jaate hain`}
+        />
+        <RangeSlider
+          label="Average Bill Kitna Hota Hai?"
+          value={inputs.avgBillValue}
+          min={100} max={30000} step={100}
+          onChange={v => update('avgBillValue', v)}
+          hint="Ek customer average kitne ka khareedta hai?"
+        />
+        {(inputs.lostCustomersPct ?? 0) > 0 && (
+          <div className="bg-red-50 rounded-xl px-3 py-2 mt-1">
+            <p className="text-xs text-red-600 font-semibold">
+              Monthly competitor loss: {fmtINR(
+                Math.round((inputs.dailyWalkins ?? 0) * (inputs.lostCustomersPct ?? 0) / 100)
+                * inputs.avgBillValue * 30 * (inputs.profitMargin / 100) * 0.40
+              )} profit
+            </p>
+          </div>
+        )}
+      </Section>
+
+      {/* ── 6. Udhari / Credit ── */}
+      <Section icon="📒" title="Udhari / Credit Outstanding" open={open.udhari} onToggle={() => toggle('udhari')}>
+        <RangeSlider
+          label="Kitne Din Ka Credit Dete Ho Customers Ko?"
+          value={inputs.creditDaysGiven}
+          min={0} max={90} step={1}
+          onChange={v => update('creditDaysGiven', v)}
+          format="days"
+          hint="Customer ko maal dene ke baad paisa kitne din mein aata hai?"
+        />
+        <RangeSlider
+          label="Total Udhari / Outstanding Amount"
+          value={inputs.actualUdhari}
+          min={0} max={2500000} step={10000}
+          onChange={v => update('actualUdhari', v)}
+          hint="Abhi customers se kitna paisa lena baaki hai?"
+        />
+        <RangeSlider
+          label="Ideal Udhari Kitne Din Ki Honi Chahiye?"
+          value={inputs.idealUdhariDays}
+          min={1} max={30} step={1}
+          onChange={v => update('idealUdhariDays', v)}
+          format="days"
+          hint="Aapke business ke liye normal/acceptable credit period kya hai?"
+        />
+
+        <ToggleRow
+          label="Udhari Badh Rahi Hai?"
+          sub="Kya outstanding amount zyada hota ja raha hai?"
+          value={inputs.udhariIncreasing}
+          onChange={v => update('udhariIncreasing', v)}
+        />
+        {inputs.udhariIncreasing && (
+          <div className="bg-red-50 rounded-xl px-3 py-2 mt-2">
+            <p className="text-xs text-red-600 font-semibold">⚠️ Risk: Badhti udhari cash flow problem banegi</p>
+          </div>
+        )}
+      </Section>
+
+      {/* ── 7. Fixed Expenses ── */}
+      <Section icon="🏠" title="Fixed Expenses (Kharche)" open={open.expenses} onToggle={() => toggle('expenses')}>
+        <p className="text-xs text-slate-500 mb-3 mt-1">Har mahine ke fixed kharche — sale ho ya na ho</p>
+        <div className="grid grid-cols-2 gap-3 mb-2">
+          <NumberInput label="Kiraya / Rent (₹/mah)" value={inputs.rent} onChange={v => update('rent', v)} />
+          <NumberInput label="Bijli / Electricity (₹/mah)" value={inputs.electricity} onChange={v => update('electricity', v)} />
+        </div>
+        <NumberInput label="Salary / Wages (₹/mah)" value={inputs.salaries} onChange={v => update('salaries', v)} />
+        <div className="bg-slate-50 rounded-xl px-3 py-2 mb-3 flex justify-between">
+          <span className="text-xs text-slate-600 font-semibold">Total Fixed Expenses</span>
+          <span className="text-sm font-extrabold text-slate-800">
+            {fmtINR(inputs.rent + inputs.electricity + inputs.salaries)}/mah
+          </span>
+        </div>
+        <RangeSlider
+          label="Har Saal Kharche Kitne % Badhte Hain?"
+          value={inputs.expenseGrowthPct}
+          min={0} max={30} step={1}
+          onChange={v => update('expenseGrowthPct', v)}
+          format="pct"
+          hint="Rent, salary sab milake saal mein kitna badhta hai?"
+        />
+        {inputs.expenseGrowthPct > 0 && (
+          <div className="bg-amber-50 rounded-xl px-3 py-2">
+            <p className="text-xs text-amber-700 font-semibold">
+              Iss saal extra burden: {fmtINR((inputs.rent + inputs.electricity + inputs.salaries) * inputs.expenseGrowthPct / 100)}/mah
+            </p>
+          </div>
+        )}
+      </Section>
+
+      {/* ── 8. Inflation ── */}
+      <Section icon="📈" title="Mehengai (Inflation)" open={open.inflation} onToggle={() => toggle('inflation')}>
+        <RangeSlider
+          label="Har Saal Mehengai Kitni Badhti Hai?"
+          value={inputs.inflationRate}
+          min={1} max={15} step={0.5}
+          onChange={v => update('inflationRate', v)}
+          format="pct"
+          hint="India average ~7% — aapke area mein kitni?"
+        />
+        {(() => {
+          const mthlyProfit = inputs.monthlySales * inputs.profitMargin / 100
+          const inflLoss = mthlyProfit * inputs.inflationRate / 100
+          return (
+            <div className="bg-amber-50 rounded-xl px-3 py-2">
+              <p className="text-xs text-amber-700 font-semibold">
+                Mehengai se profit erosion: {fmtINR(inflLoss)}/mah
+              </p>
+              <p className="text-xs text-amber-500 mt-0.5">
+                Aapka ₹{Math.round(mthlyProfit).toLocaleString('en-IN')} profit real value mein kam ho raha hai
+              </p>
+            </div>
+          )
+        })()}
+      </Section>
+
+      {/* ── 9. Existing Loan ── */}
+      <Section icon="🏦" title="Purana Loan (Agar Hai)" open={open.loan} onToggle={() => toggle('loan')}>
+        <ToggleRow
+          label="Koi Loan Abhi Chal Raha Hai?"
+          sub="EMI bhar rahe ho kisi aur loan ki?"
+          value={inputs.existingLoan}
+          onChange={v => update('existingLoan', v)}
+        />
+        {inputs.existingLoan && (
+          <div className="mt-3">
+            <RangeSlider
+              label="Purani EMI Kitni Hai?"
+              value={inputs.existingEMI}
+              min={0} max={200000} step={1000}
+              onChange={v => update('existingEMI', v)}
+            />
+            {(() => {
+              const mthlyProfit = inputs.monthlySales * inputs.profitMargin / 100
+              const pct = mthlyProfit > 0 ? Math.round(inputs.existingEMI / mthlyProfit * 100) : 0
+              return (
+                <div className={`rounded-xl px-3 py-2 ${pct > 40 ? 'bg-red-50' : 'bg-green-50'}`}>
+                  <p className={`text-xs font-semibold ${pct > 40 ? 'text-red-600' : 'text-green-600'}`}>
+                    {pct > 40
+                      ? `⚠️ EMI kamaai ka ${pct}% — zyada hai`
+                      : `✓ EMI kamaai ka ${pct}% — theek hai`}
+                  </p>
+                </div>
+              )
+            })()}
+          </div>
+        )}
+      </Section>
+
+      {/* ── 10. Loan Customize ── */}
+      <LoanCustomizeCard />
+
+    </ScreenShell>
+  )
+}
