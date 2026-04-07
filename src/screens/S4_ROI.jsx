@@ -55,7 +55,9 @@ function ROIDrawerItem({ item }) {
           <span className="text-lg">{item.icon}</span>
           <p className="text-sm font-bold text-slate-800">{item.head}</p>
         </div>
-        <p className="text-sm font-extrabold text-green-600 flex-shrink-0">+₹{Math.round(item.result).toLocaleString('en-IN')}/mah</p>
+        <p className={`text-sm font-extrabold flex-shrink-0 ${item.resultColor ?? 'text-green-600'}`}>
+          {item.resultDisplay ?? `+₹${Math.round(item.result).toLocaleString('en-IN')}/mah`}
+        </p>
       </div>
       <p className="text-xs text-slate-500 mb-1.5">{item.body}</p>
       <button
@@ -90,6 +92,7 @@ export default function S4_ROI() {
   const { inputs, update, next, back, screen } = useApp()
   const [drawer, setDrawer] = useState(false)
   const [showCharges, setShowCharges] = useState(false)
+  const [showAffordability, setShowAffordability] = useState(false)
 
   const roi = calculateROI(inputs)
 
@@ -114,8 +117,10 @@ export default function S4_ROI() {
   const rawFullIncome    = rawNetBizKamaai + familyInc
   const fullIncome       = Math.max(1, rawFullIncome)                         // clamped only for % calc
 
+  const existingEMIAmt   = inputs.existingLoan ? (inputs.existingEMI ?? 0) : 0
   const bizEmiPct        = (businessEMI / fullIncome) * 100
   const fullEmiPct       = (totalEMI / fullIncome) * 100
+  const oldEmiPct        = (existingEMIAmt / fullIncome) * 100
 
   // Remaining after EMI (can be negative = deficit)
   const bizAfterEMI      = rawFullIncome - businessEMI
@@ -127,7 +132,8 @@ export default function S4_ROI() {
 
   // ── Other charges (component-level so hero and hisaab share same value) ──
   const _L                = inputs.loanAmount
-  const _subtotalCharges  = (_L * 0.025) + (_L * 0.025) + 2500 + 2500 + (_L * 0.0025) + (_L * 0.01)
+  const _insuranceRate    = _L <= 500000 ? 0.035 : 0.03
+  const _subtotalCharges  = (_L * 0.025) + (_L * _insuranceRate) + 2500 + 2500 + (_L * 0.0025) + (_L * 0.01)
   const _gst              = _subtotalCharges * 0.18
   const _totalCharges     = _subtotalCharges + _gst
   const netAfterCharges   = roi.netGainTenure - _totalCharges
@@ -293,13 +299,8 @@ export default function S4_ROI() {
           /* Single view */
           <div className="bg-white">
             <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center">
-              <div>
-                <p className="text-sm font-semibold text-slate-700">📋 EMI <span className="text-xs text-slate-400 font-normal">(roz ₹{Math.round(roi.dailyEMI).toLocaleString('en-IN')})</span></p>
-                {inputs.existingLoan && (inputs.existingEMI ?? 0) > 0 && (
-                  <p className="text-xs text-slate-400">Loan EMI ₹{Math.round(roi.emiAmount).toLocaleString('en-IN')} + Purana ₹{Math.round(inputs.existingEMI ?? 0).toLocaleString('en-IN')}</p>
-                )}
-              </div>
-              <p className="text-base font-extrabold text-red-500">−₹{Math.round(totalEMI).toLocaleString('en-IN')}</p>
+              <p className="text-sm font-semibold text-slate-700">📋 EMI <span className="text-xs text-slate-400 font-normal">(roz ₹{Math.round(roi.dailyEMI).toLocaleString('en-IN')})</span></p>
+              <p className="text-base font-extrabold text-red-500">−₹{Math.round(roi.emiAmount).toLocaleString('en-IN')}</p>
             </div>
             <div className="px-4 py-4 bg-gradient-to-r from-emerald-700 to-green-600 flex justify-between items-center">
               <div>
@@ -318,31 +319,98 @@ export default function S4_ROI() {
       {/* ── EMI affordability ── */}
       {persPct === 0 ? (
         /* ── Single view (100% business) ── */
-        <div className={`rounded-2xl p-3 mb-4 border ${bizEmiPct < 30 ? 'bg-green-50 border-green-200' : bizEmiPct < 50 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">{bizEmiPct < 30 ? '✅' : bizEmiPct < 50 ? '⚠️' : '🔴'}</span>
-            <p className={`text-sm font-bold ${bizEmiPct < 30 ? 'text-green-800' : bizEmiPct < 50 ? 'text-amber-800' : 'text-red-800'}`}>
-              EMI {Math.round(bizEmiPct)}% of net kamaai {bizEmiPct < 30 ? '— manageable!' : bizEmiPct < 50 ? '— thoda tight' : '— loan kam karo'}
-            </p>
+        <div className="rounded-2xl border border-slate-200 overflow-hidden mb-4">
+          <button
+            onClick={() => setShowAffordability(o => !o)}
+            className="w-full px-4 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center"
+          >
+            <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">EMI Affordability — Business</p>
+            <span className="text-slate-400 text-xs">{showAffordability ? '▲' : '▼'}</span>
+          </button>
+
+          {showAffordability && <>
+          {/* Calculation breakdown */}
+          {(() => {
+            const r = n => '₹' + Math.round(n).toLocaleString('en-IN')
+            const afterAll = rawFullIncome - roi.emiAmount - existingEMIAmt
+
+            const rows = [
+              { label: 'Business income',   value: grossMargin,       color: 'text-slate-700' },
+              { label: '− Fixed expenses',  value: -totalFixedExp,    color: 'text-red-500'   },
+              { label: '= Net biz income',  value: rawNetBizKamaai,   color: rawNetBizKamaai < 0 ? 'text-red-600 font-bold' : 'text-slate-800 font-bold', divider: true },
+              ...(familyInc > 0 ? [{ label: '+ Parivar income', value: familyInc, color: 'text-slate-700' }] : []),
+              { label: '− Business EMI',    value: -roi.emiAmount,    color: 'text-red-500'   },
+              ...(existingEMIAmt > 0 ? [{ label: '− Purana EMI', value: -existingEMIAmt, color: 'text-red-500' }] : []),
+            ]
+
+            return (
+              <div className="px-4 py-3 border-b border-slate-100 space-y-1.5">
+                {rows.map((row, i) => (
+                  <div key={i}>
+                    {row.divider && <div className="h-px bg-slate-200 my-1" />}
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-slate-500">{row.label}</span>
+                      <span className={`text-xs font-semibold ${row.color}`}>
+                        {row.value < 0 ? `−${r(Math.abs(row.value))}` : r(row.value)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                <div className="h-px bg-slate-300 my-1" />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-bold text-slate-700">Bacha / Mahine</span>
+                  <span className={`text-base font-extrabold ${afterAll < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                    {afterAll < 0 ? `−${r(Math.abs(afterAll))}` : r(afterAll)}
+                    {afterAll < 0 ? ' ⚠️' : ''}
+                  </span>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Business EMI bar */}
+          <div className={`px-4 py-3 border-b border-slate-100 ${bizEmiPct < 30 ? 'bg-green-50' : bizEmiPct < 50 ? 'bg-amber-50' : 'bg-red-50'}`}>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm">{bizEmiPct < 30 ? '✅' : bizEmiPct < 50 ? '⚠️' : '🔴'}</span>
+                <p className={`text-xs font-bold ${bizEmiPct < 30 ? 'text-green-800' : bizEmiPct < 50 ? 'text-amber-800' : 'text-red-800'}`}>Business EMI — {Math.round(bizEmiPct)}% of income</p>
+              </div>
+              <span className="text-slate-400 text-xs">Ideal &lt;30%</span>
+            </div>
+            <div className="h-1.5 bg-white/70 rounded-full overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${Math.min(bizEmiPct, 100)}%`, background: bizEmiPct < 30 ? '#16A34A' : bizEmiPct < 50 ? '#D97706' : '#DC2626' }} />
+            </div>
           </div>
-          <p className={`text-xs mb-2 ${bizEmiPct < 30 ? 'text-green-600' : bizEmiPct < 50 ? 'text-amber-600' : 'text-red-600'}`}>
-            Net kamaai: {fmtINR(grossMargin)} − {fmtINR(totalFixedExp)} = {fmtINR(netBizKamaai)} &nbsp;|&nbsp; EMI: {fmtINR(totalEMI)}/mah
-          </p>
-          <div className="h-2 bg-white/60 rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(bizEmiPct, 100)}%`, background: bizEmiPct < 30 ? '#16A34A' : bizEmiPct < 50 ? '#D97706' : '#DC2626' }} />
-          </div>
-          <div className="flex justify-between text-xs mt-1">
-            <span className={bizEmiPct < 30 ? 'text-green-600' : bizEmiPct < 50 ? 'text-amber-600' : 'text-red-600'}>{Math.round(bizEmiPct)}% of net kamaai</span>
-            <span className="text-slate-400">Ideal &lt; 30%</span>
-          </div>
+
+          {/* Total EMI bar (shown only when purana EMI exists) */}
+          {existingEMIAmt > 0 && (
+            <div className={`px-4 py-3 ${fullEmiPct < 30 ? 'bg-green-50' : fullEmiPct < 50 ? 'bg-amber-50' : 'bg-red-50'}`}>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">{fullEmiPct < 30 ? '✅' : fullEmiPct < 50 ? '⚠️' : '🔴'}</span>
+                  <p className={`text-xs font-bold ${fullEmiPct < 30 ? 'text-green-800' : fullEmiPct < 50 ? 'text-amber-800' : 'text-red-800'}`}>Total EMI (Biz + Purana) — {Math.round(fullEmiPct)}% of income</p>
+                </div>
+                <span className="text-slate-400 text-xs">Ideal &lt;30%</span>
+              </div>
+              <div className="h-1.5 bg-white/70 rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${Math.min(fullEmiPct, 100)}%`, background: fullEmiPct < 30 ? '#16A34A' : fullEmiPct < 50 ? '#D97706' : '#DC2626' }} />
+              </div>
+            </div>
+          )}
+          </>}
         </div>
       ) : (
         /* ── Split view (business + personal) ── */
         <div className="rounded-2xl border border-slate-200 overflow-hidden mb-4">
-          <div className="px-4 py-2 bg-slate-50 border-b border-slate-200">
+          <button
+            onClick={() => setShowAffordability(o => !o)}
+            className="w-full px-4 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center"
+          >
             <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">EMI Affordability — Business + Personal</p>
-          </div>
+            <span className="text-slate-400 text-xs">{showAffordability ? '▲' : '▼'}</span>
+          </button>
 
+          {showAffordability && <>
           {/* ── Calculation breakdown ── */}
           {(() => {
             const r = n => '₹' + Math.round(n).toLocaleString('en-IN')
@@ -414,6 +482,7 @@ export default function S4_ROI() {
               <div className="h-full rounded-full" style={{ width: `${Math.min(fullEmiPct, 100)}%`, background: fullEmiPct < 30 ? '#16A34A' : fullEmiPct < 50 ? '#D97706' : '#DC2626' }} />
             </div>
           </div>
+          </>}
         </div>
       )}
 
@@ -421,7 +490,8 @@ export default function S4_ROI() {
       {(() => {
         const L = inputs.loanAmount
         const processingFee   = L * 0.025
-        const insurance       = L * 0.025
+        const insuranceRate   = L <= 500000 ? 0.035 : 0.03
+        const insurance       = L * insuranceRate
         const legal           = 2500
         const valuation       = 2500
         const stamping        = L * 0.0025
@@ -433,7 +503,7 @@ export default function S4_ROI() {
 
         const chargeRows = [
           { label: 'Processing fees (2.5%)',   val: processingFee },
-          { label: 'Insurance (2.5%)',          val: insurance },
+          { label: `Insurance (${L <= 500000 ? '3.5' : '3'}%)`,  val: insurance },
           { label: 'Legal charges',             val: legal },
           { label: 'Valuation charges',         val: valuation },
           { label: 'Stamping (0.25%)',          val: stamping },
@@ -590,8 +660,40 @@ export default function S4_ROI() {
           ].map(item => (
             <ROIDrawerItem key={item.head} item={item} />
           ))}
+          {[
+            {
+              icon: '⏱️', head: 'Payback Period',
+              body: 'Kitne mahine mein loan ka paisa wapas aayega business se',
+              calc: `Total repayment ÷ monthly gain:\n₹${Math.round(roi.totalRepayment).toLocaleString('en-IN')} ÷ ${r(roi.totalMonthlyGain)}/mah = ${roi.paybackMonths.toFixed(1)} mahine`,
+              result: roi.paybackMonths,
+              resultDisplay: `${roi.paybackMonths.toFixed(1)} mahine`,
+              resultColor: 'text-indigo-600',
+            },
+            {
+              icon: '📋', head: 'Business EMI',
+              body: 'Sirf business loan ka EMI — net income ka kitna hissa jaata hai',
+              calc: (() => {
+                const r2 = (inputs.interestRate / 12 / 100).toFixed(4)
+                return `EMI = P × r × (1+r)^n / ((1+r)^n − 1)\nP = ${r(inputs.loanAmount * bizPct / 100)}, r = ${r2}/mah, n = ${inputs.tenureMonths}M\n= ${r(businessEMI)}/mah\n\nAffordability: ${r(businessEMI)} ÷ ${r(fullIncome)} = ${Math.round(bizEmiPct)}% of net income`
+              })(),
+              result: businessEMI,
+              resultDisplay: `−${r(businessEMI)}/mah`,
+              resultColor: 'text-red-500',
+            },
+            {
+              icon: '🧾', head: 'Total EMI Burden',
+              body: 'Business EMI + purana EMI — total kitna jaata hai har mahine',
+              calc: `Business EMI: ${r(businessEMI)}\n+ Purana EMI: ${r(existingEMIAmt)}\n= Total: ${r(totalEMI)}/mah\n\nAffordability: ${r(totalEMI)} ÷ ${r(fullIncome)} = ${Math.round(fullEmiPct)}% of net income`,
+              result: totalEMI,
+              resultDisplay: `−${r(totalEMI)}/mah`,
+              resultColor: 'text-red-500',
+            },
+          ].map(item => (
+            <ROIDrawerItem key={item.head} item={item} />
+          ))}
         </div>
         <div className="mt-4 space-y-2">
+
           <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex justify-between items-center">
             <p className="text-sm font-bold text-green-800">Total Monthly Faida</p>
             <div className="text-right">
