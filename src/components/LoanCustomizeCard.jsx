@@ -12,17 +12,26 @@ export default function LoanCustomizeCard() {
   const bizPct = inputs.businessLoanPct ?? 100
   const persPct = 100 - bizPct
 
+  const done = inputs.loanAmount > 0 && inputs.tenureMonths > 0
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm mb-3 overflow-hidden">
+    <div className={`bg-white rounded-2xl border shadow-sm mb-3 overflow-hidden ${done ? 'border-indigo-200' : 'border-slate-100'}`}>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
         <div className="flex items-center gap-2">
           <span className="text-xl">🎛️</span>
-          <span className="text-sm font-bold text-slate-700">Loan Customize Karo</span>
-          <span className="text-xs bg-indigo-100 text-brand px-2 py-0.5 rounded-full font-semibold">
-            {fmtINR(inputs.loanAmount)} · {inputs.tenureMonths}M
-          </span>
+          <span className={`text-sm font-bold ${done ? 'text-indigo-700' : 'text-slate-700'}`}>Loan Customize Karo</span>
+          {done && (
+            <span className="text-xs bg-indigo-100 text-brand px-2 py-0.5 rounded-full font-semibold">
+              {fmtINR(inputs.loanAmount)} · {inputs.tenureMonths}M
+            </span>
+          )}
         </div>
-        <span className="text-slate-400 text-sm">{open ? '▲' : '▼'}</span>
+        <div className="flex items-center gap-2">
+          {done && (
+            <span className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold leading-none">✓</span>
+          )}
+          <span className="text-slate-400 text-sm">{open ? '▲' : '▼'}</span>
+        </div>
       </button>
 
       {open && (

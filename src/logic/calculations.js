@@ -33,6 +33,10 @@ export function calcEMI(principal, annualRatePct, tenureMonths) {
 // ─── Default Inputs (matching Excel sample values) ──────────────────────────
 
 export const DEFAULT_INPUTS = {
+  // Customer identity
+  customerName:           '',
+  customerMobile:         '',
+
   // Business
   businessType:           'kirana',
   businessAge:            '2-5',
@@ -91,6 +95,24 @@ export const DEFAULT_INPUTS = {
   familyIncome:           0,
 
   problems:               [],
+  subProblems:            [],
+}
+
+export const BLANK_INPUTS = {
+  customerName: '', customerMobile: '',
+  businessType: '', businessAge: '',
+  monthlySales: 0, profitMargin: 0,
+  monthlyStockPurchase: 0, stockRotationDays: 0,
+  bulkDiscount: 0, schemeDiscount: 0, cashDiscount: 0, stockPriceIncreasePct: 0,
+  seasonUplift: 0, seasonMonths: 0,
+  dailyWalkins: 0, lostCustomersPct: 0, avgBillValue: 0,
+  creditDaysGiven: 0, actualUdhari: 0, idealUdhariDays: 0, udhariIncreasing: false,
+  rent: 0, electricity: 0, salaries: 0, expenseGrowthPct: 0,
+  inflationRate: 0,
+  loanAmount: 0, tenureMonths: 0, interestRate: 21, businessLoanPct: 100,
+  existingLoan: null, existingEMI: 0,
+  familyIncome: 0,
+  problems: [], subProblems: [],
 }
 
 // ─── Cost of Delay ──────────────────────────────────────────────────────────
