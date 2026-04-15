@@ -94,6 +94,8 @@ export const DEFAULT_INPUTS = {
   // Family income
   familyIncome:           0,
 
+  bizTypes:               [],
+  bizTypeOther:           '',
   problems:               [],
   subProblems:            [],
 }
@@ -112,6 +114,7 @@ export const BLANK_INPUTS = {
   loanAmount: 0, tenureMonths: 0, interestRate: 21, businessLoanPct: 100,
   existingLoan: null, existingEMI: 0,
   familyIncome: 0,
+  bizTypes: [], bizTypeOther: '',
   problems: [], subProblems: [],
 }
 

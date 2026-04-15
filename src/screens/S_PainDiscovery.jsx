@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { PROBLEMS } from '../logic/problems'
+import { addEvent } from '../lib/db/events'
+import { getCurrentUser } from '../lib/db/dashboard'
 
 // ── Sub-problem questions ────────────────────────────────────────────────────
 
@@ -182,9 +184,24 @@ const QUESTIONS = [
 // ── Main screen ──────────────────────────────────────────────────────────────
 
 export default function S_PainDiscovery() {
-  const { closePainDiscovery, toggleProblem, toggleSubProblem, inputs } = useApp()
-  const [checked, setChecked]       = useState(new Set())
+  const { closePainDiscovery, toggleProblem, toggleSubProblem, update, inputs, customerId } = useApp()
+  const [checked, setChecked]         = useState(new Set())
   const [expandedTag, setExpandedTag] = useState(null)
+  const [q1Other,      setQ1Other]      = useState('')
+  const [notesByQ,     setNotesByQ]     = useState({})
+  const [problemYears, setProblemYears] = useState('')
+  const [problemMonths,setProblemMonths]= useState('')
+  const [priority,     setPriority]     = useState('')
+  const [capitalNeeded,setCapitalNeeded]= useState('')
+  const [dailyLoss,    setDailyLoss]    = useState('')
+  const [monthlyLoss,  setMonthlyLoss]  = useState('')
+  const [saving,       setSaving]       = useState(false)
+  const [saveError,    setSaveError]    = useState(null)
+  const [saved,        setSaved]        = useState(false)
+
+  function setNote(num, val) {
+    setNotesByQ(prev => ({ ...prev, [num]: val }))
+  }
 
   function toggleChecked(num) {
     setChecked(prev => {
@@ -197,6 +214,30 @@ export default function S_PainDiscovery() {
   function handleCategory(p) {
     toggleProblem(p.tag)
     setExpandedTag(prev => prev === p.tag ? null : p.tag)
+  }
+
+  async function savePainData() {
+    if (!customerId) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await addEvent(customerId, 'pain_identified', {
+        primaryProblem:  inputs.problems[0] || null,
+        primaryOther:    q1Other || null,
+        subProblems:     inputs.subProblems,
+        problemDuration: { years: problemYears, months: problemMonths },
+        priority,
+        capitalNeeded,
+        dailyLoss:       dailyLoss   ? Number(dailyLoss)   : null,
+        monthlyLoss:     monthlyLoss ? Number(monthlyLoss) : null,
+        notesByQuestion: notesByQ,
+      }, getCurrentUser())
+      setSaved(true)
+    } catch (err) {
+      setSaveError(err.message || 'Save failed. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const totalDone = checked.size + (inputs.problems.length > 0 ? 1 : 0)
@@ -261,6 +302,32 @@ export default function S_PainDiscovery() {
                   )}
                 </div>
               </div>
+
+              {/* Q1 — dropdown with 7 problems + Other */}
+              {q.num === 1 && (
+                <div className="px-4 pb-3 border-t border-slate-100 pt-3 space-y-2">
+                  <select
+                    value={inputs.problems[0] || ''}
+                    onChange={e => update('problems', e.target.value ? [e.target.value] : [])}
+                    className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 bg-white"
+                  >
+                    <option value="">— Problem chunein —</option>
+                    {PROBLEMS.map(p => (
+                      <option key={p.tag} value={p.tag}>{p.emoji} {p.title}</option>
+                    ))}
+                    <option value="__OTHER__">✏️ Other</option>
+                  </select>
+                  {inputs.problems.includes('__OTHER__') && (
+                    <input
+                      type="text"
+                      value={q1Other}
+                      onChange={e => setQ1Other(e.target.value)}
+                      placeholder="Problem likho..."
+                      className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                    />
+                  )}
+                </div>
+              )}
 
               {/* Q3 — Category selector with sub-problems */}
               {q.type === 'category' && (
@@ -339,6 +406,73 @@ export default function S_PainDiscovery() {
                 </div>
               )}
 
+              {/* Q2 — Problem duration dropdowns */}
+              {q.num === 2 && (
+                <div className="px-4 pb-3 border-t border-slate-100 pt-3">
+                  <p className="text-xs font-bold text-slate-500 mb-2">Kitne time se? (Approximate)</p>
+                  <div className="flex gap-2">
+                    <select
+                      value={problemYears}
+                      onChange={e => setProblemYears(e.target.value)}
+                      className="flex-1 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 bg-white"
+                    >
+                      <option value="">— Saal —</option>
+                      {[0,1,2,3,4,5,6,7,8,9,10].map(n => (
+                        <option key={n} value={n}>{n === 0 ? 'Is saal' : `${n} saal`}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={problemMonths}
+                      onChange={e => setProblemMonths(e.target.value)}
+                      className="flex-1 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 bg-white"
+                    >
+                      <option value="">— Mahine —</option>
+                      {[1,2,3,4,5,6,7,8,9,10,11].map(n => (
+                        <option key={n} value={n}>{n} mahine</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Q5 — Priority choice */}
+              {q.num === 5 && (
+                <div className="px-4 pb-3 border-t border-slate-100 pt-3 flex gap-2">
+                  {[
+                    { val: 'abhi',     label: '⚡ Abhi Solve Karna Hai' },
+                    { val: 'baad',     label: '🕐 Thoda Wait Karunga' },
+                  ].map(opt => (
+                    <button
+                      key={opt.val}
+                      onClick={() => setPriority(opt.val)}
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all active:scale-95
+                        ${priority === opt.val ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600'}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Q7 — Capital needed choice */}
+              {q.num === 7 && (
+                <div className="px-4 pb-3 border-t border-slate-100 pt-3 flex gap-2">
+                  {[
+                    { val: 'haan', label: '✅ Haan, Capital Chahiye' },
+                    { val: 'nahi', label: '❌ Nahi, Abhi Nahi' },
+                  ].map(opt => (
+                    <button
+                      key={opt.val}
+                      onClick={() => setCapitalNeeded(opt.val)}
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all active:scale-95
+                        ${capitalNeeded === opt.val ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600'}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Done toggle for non-category questions */}
               {q.type !== 'category' && (
                 <button
@@ -349,9 +483,69 @@ export default function S_PainDiscovery() {
                   {isDone ? '✓ Done — Next Question' : 'Tap when answered →'}
                 </button>
               )}
+
+              {/* Notes space after every question */}
+              <div className="px-4 pb-3 pt-2 border-t border-slate-100">
+                <textarea
+                  rows={2}
+                  value={notesByQ[q.num] || ''}
+                  onChange={e => setNote(q.num, e.target.value)}
+                  placeholder="Notes / Jo customer ne kaha..."
+                  className="w-full text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-indigo-300 resize-none placeholder:text-slate-300 bg-white"
+                />
+              </div>
             </div>
           )
         })}
+
+        {/* Pain metrics + save */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-3">📊 Nuksaan ka Hisaab</p>
+
+          {!customerId && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">
+              <p className="text-xs text-amber-700 font-semibold">⚠️ Pehle Engagement Form bharo — customer link nahi hua hai</p>
+            </div>
+          )}
+
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Roz ka Nuksaan (₹ per day)</label>
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="जैसे: 2000"
+            value={dailyLoss}
+            onChange={e => setDailyLoss(e.target.value)}
+            className="w-full mt-1 mb-3 text-base font-semibold text-slate-800 outline-none placeholder:text-slate-300 border-b border-slate-100 pb-1"
+          />
+
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mahine ka Nuksaan (₹ per month)</label>
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder="जैसे: 50000"
+            value={monthlyLoss}
+            onChange={e => setMonthlyLoss(e.target.value)}
+            className="w-full mt-1 mb-3 text-base font-semibold text-slate-800 outline-none placeholder:text-slate-300 border-b border-slate-100 pb-1"
+          />
+
+          {saveError && (
+            <p className="text-xs text-red-500 font-semibold mt-2">{saveError}</p>
+          )}
+
+          {saved ? (
+            <div className="mt-3 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+              <p className="text-xs text-green-700 font-bold">✅ Pain data save ho gaya!</p>
+            </div>
+          ) : (
+            <button
+              onClick={savePainData}
+              disabled={!customerId || saving}
+              className="mt-3 w-full py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl disabled:opacity-40 active:scale-95 transition-all"
+            >
+              {saving ? 'Saving...' : 'Pain Data Save Karo →'}
+            </button>
+          )}
+        </div>
 
         {/* Final CTA */}
         <div className="bg-green-50 border border-green-200 rounded-2xl px-4 py-3">

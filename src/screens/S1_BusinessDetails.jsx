@@ -5,18 +5,21 @@ import RangeSlider from '../components/RangeSlider'
 import LoanCustomizeCard from '../components/LoanCustomizeCard'
 import { fmtINR, fmtINRFull } from '../logic/calculations'
 
-const BUSINESS_TYPES = [
-  { value: 'kirana',    label: '🛒 Kirana / General' },
-  { value: 'kapda',     label: '👔 Kapda / Textile' },
-  { value: 'pharma',    label: '💊 Medical / Pharma' },
-  { value: 'hardware',  label: '🔧 Hardware / Sanitary' },
-  { value: 'electrical',label: '⚡ Electrical' },
-  { value: 'mobile',    label: '📱 Mobile / Electronics' },
-  { value: 'shoes',     label: '👟 Shoes / Footwear' },
-  { value: 'dairy',     label: '🥛 Dairy / Bakery' },
-  { value: 'auto',      label: '🔩 Auto Parts' },
-  { value: 'salon',     label: '✂️ Salon / Beauty' },
-  { value: 'other',     label: '🏪 Aur Kuch' },
+// Same options as engagement form किस चीज़ का व्यापार है?
+const BIZ_TYPES = [
+  { label: 'किराना / जनरल स्टोर',    emoji: '🛒' },
+  { label: 'हार्डवेयर / सैनिटरी',     emoji: '🔧' },
+  { label: 'इलेक्ट्रिकल',              emoji: '⚡' },
+  { label: 'कपड़े / रेडीमेड',          emoji: '👔' },
+  { label: 'मोबाइल / इलेक्ट्रॉनिक्स', emoji: '📱' },
+  { label: 'डेयरी / दूध की दुकान',    emoji: '🥛' },
+  { label: 'चिकित्सा / फार्मेसी',      emoji: '💊' },
+  { label: 'जूते-चप्पल',               emoji: '👟' },
+  { label: 'सेवाएं / Services',         emoji: '🛠️' },
+  { label: 'ऑटो पार्ट्स',              emoji: '🔩' },
+  { label: 'फैंसी स्टोर',              emoji: '✨' },
+  { label: 'पेंट की दुकान',            emoji: '🎨' },
+  { label: 'फर्नीचर',                  emoji: '🪑' },
 ]
 
 const AGE_OPTIONS = [
@@ -68,6 +71,7 @@ function ToggleRow({ label, sub, value, onChange }) {
 }
 
 function NumberInput({ label, value, onChange, suffix = '' }) {
+  const [raw, setRaw] = useState(value === 0 ? '0' : (value || ''))
   return (
     <div className="mb-3">
       <p className="text-xs font-semibold text-slate-500 mb-1">{label}</p>
@@ -75,8 +79,15 @@ function NumberInput({ label, value, onChange, suffix = '' }) {
         <span className="px-3 py-2.5 bg-slate-50 text-slate-500 font-bold text-sm border-r border-slate-200">₹</span>
         <input
           type="number"
-          value={value || ''}
-          onChange={e => onChange(Number(e.target.value) || 0)}
+          inputMode="numeric"
+          value={raw}
+          min={0}
+          onChange={e => {
+            const n = Number(e.target.value)
+            const clamped = isNaN(n) ? 0 : Math.max(0, n)
+            setRaw(e.target.value === '' ? '' : String(clamped))
+            onChange(clamped)
+          }}
           className="flex-1 px-3 py-2.5 text-sm font-bold text-slate-800 outline-none bg-white"
         />
         {suffix && <span className="px-3 py-2.5 bg-slate-50 text-slate-500 text-xs font-bold border-l border-slate-200">{suffix}</span>}
@@ -86,14 +97,18 @@ function NumberInput({ label, value, onChange, suffix = '' }) {
 }
 
 export default function S1_BusinessDetails() {
-  const { inputs, update, next, screen, reset, saveCurrentCustomer, openSavedCustomers } = useApp()
+  const { inputs, update, next, screen, reset, saveCurrentCustomer, saving, openSavedCustomers } = useApp()
   const [confirmReset, setConfirmReset] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  function handleSave() {
-    saveCurrentCustomer()
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  async function handleSave() {
+    try {
+      await saveCurrentCustomer()
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch {
+      // error is already in AppContext.saveError — nothing extra needed here
+    }
   }
   const INITIAL_OPEN = { business: true, sales: true, stock: true, season: false, competition: false, udhari: false, expenses: false, inflation: false, loan: false }
   const [open, setOpen] = useState(INITIAL_OPEN)
@@ -104,7 +119,7 @@ export default function S1_BusinessDetails() {
 
   // Section completion indicators — all key fields must be filled
   const done = {
-    business:    !!inputs.businessType && AGE_OPTIONS.some(a => a.value === inputs.businessAge),
+    business:    (!!inputs.businessType && inputs.businessType !== '__other__' || !!inputs.bizTypeOther) && AGE_OPTIONS.some(a => a.value === inputs.businessAge),
     sales:       inputs.monthlySales > 0 && inputs.profitMargin > 0,
     stock:       inputs.monthlyStockPurchase > 0 && inputs.stockRotationDays > 0 && inputs.stockPriceIncreasePct > 0,
     season:      inputs.seasonUplift > 0 && inputs.seasonMonths > 0,
@@ -152,9 +167,10 @@ export default function S1_BusinessDetails() {
         <div className="flex gap-2">
           <button
             onClick={handleSave}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-bold text-white text-center active:scale-95 transition-all ${saved ? 'bg-green-500' : 'bg-indigo-600'}`}
+            disabled={saving}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold text-white text-center active:scale-95 transition-all disabled:opacity-60 ${saved ? 'bg-green-500' : 'bg-indigo-600'}`}
           >
-            {saved ? '✓ Saved!' : '💾 Save Karen'}
+            {saving ? 'Saving...' : saved ? '✓ Saved!' : '💾 Save Karen'}
           </button>
           <button
             onClick={openSavedCustomers}
@@ -195,20 +211,38 @@ export default function S1_BusinessDetails() {
 
       {/* ── 1. Business Info ── */}
       <Section icon="🏪" title="Business Ki Jaankari" open={open.business} onToggle={() => toggle('business')} done={done.business}>
-        <div className="grid grid-cols-2 gap-2 mb-4 mt-2">
-          {BUSINESS_TYPES.map(bt => (
+        <div className="grid grid-cols-2 gap-2 mb-3 mt-2">
+          {BIZ_TYPES.map(bt => (
             <button
-              key={bt.value}
-              onClick={() => update('businessType', bt.value)}
+              key={bt.label}
+              onClick={() => { update('businessType', bt.label); update('bizTypes', [bt.label]) }}
               className={`py-2.5 px-2 rounded-xl text-xs font-semibold text-left border-2 transition-all
-                ${inputs.businessType === bt.value
+                ${inputs.businessType === bt.label
                   ? 'border-brand bg-indigo-50 text-brand'
                   : 'border-slate-200 text-slate-700'}`}
             >
-              {bt.label}
+              {bt.emoji} {bt.label}
             </button>
           ))}
+          <button
+            onClick={() => { update('businessType', '__other__'); update('bizTypes', ['__other__']) }}
+            className={`py-2.5 px-2 rounded-xl text-xs font-semibold text-left border-2 transition-all
+              ${inputs.businessType === '__other__'
+                ? 'border-brand bg-indigo-50 text-brand'
+                : 'border-slate-200 text-slate-700'}`}
+          >
+            Other
+          </button>
         </div>
+        {inputs.businessType === '__other__' && (
+          <input
+            type="text"
+            value={inputs.bizTypeOther || ''}
+            onChange={e => update('bizTypeOther', e.target.value)}
+            placeholder="Business type likho..."
+            className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-400 mb-3"
+          />
+        )}
 
         <p className="text-xs font-semibold text-slate-500 mb-2">Dukaan Kitne Saal Se Hai?</p>
         <div className="flex gap-1.5">

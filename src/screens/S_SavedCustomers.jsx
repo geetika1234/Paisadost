@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
-import { loadAllCustomers, deleteCustomer } from '../logic/customerStorage'
+import { getAllLoans, deleteLoan } from '../lib/db/loans'
 import { fmtINR } from '../logic/calculations'
 
 function formatDate(iso) {
@@ -11,18 +11,44 @@ function formatDate(iso) {
 
 export default function S_SavedCustomers() {
   const { closeSavedCustomers, loadCustomer } = useApp()
-  const [customers, setCustomers] = useState(() => loadAllCustomers())
+  const [customers,       setCustomers]       = useState([])
+  const [loading,         setLoading]         = useState(true)
+  const [error,           setError]           = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [deleting,        setDeleting]        = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await getAllLoans()
+        setCustomers(data)
+      } catch (err) {
+        setError(err.message || 'Data load karne mein error aayi.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
 
   function handleLoad(record) {
     loadCustomer(record.inputs)
     closeSavedCustomers()
   }
 
-  function handleDelete(id) {
-    deleteCustomer(id)
-    setCustomers(loadAllCustomers())
-    setConfirmDeleteId(null)
+  async function handleDelete(id) {
+    setDeleting(true)
+    try {
+      await deleteLoan(id)
+      setCustomers(prev => prev.filter(c => c.id !== id))
+      setConfirmDeleteId(null)
+    } catch (err) {
+      setError(err.message || 'Delete karne mein error aayi.')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -45,7 +71,21 @@ export default function S_SavedCustomers() {
 
       {/* List */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
-        {customers.length === 0 ? (
+
+        {/* Error banner */}
+        {error && (
+          <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-600">
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* Loading */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center h-64 text-center">
+            <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3" />
+            <p className="text-sm font-semibold text-slate-400">Load ho raha hai...</p>
+          </div>
+        ) : customers.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">
             <p className="text-4xl mb-3">📂</p>
             <p className="text-sm font-bold text-slate-600">Abhi koi saved customer nahi hai</p>
@@ -86,9 +126,10 @@ export default function S_SavedCustomers() {
                   <div className="px-4 pb-3 flex gap-2">
                     <button
                       onClick={() => handleDelete(record.id)}
-                      className="flex-1 py-2 bg-red-500 text-white text-xs font-bold rounded-xl active:scale-95 transition-all"
+                      disabled={deleting}
+                      className="flex-1 py-2 bg-red-500 text-white text-xs font-bold rounded-xl active:scale-95 transition-all disabled:opacity-60"
                     >
-                      Haan, Delete Karo
+                      {deleting ? 'Deleting...' : 'Haan, Delete Karo'}
                     </button>
                     <button
                       onClick={() => setConfirmDeleteId(null)}

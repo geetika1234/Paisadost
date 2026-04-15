@@ -1,13 +1,26 @@
 import { useState, useRef } from 'react'
 import { useApp } from '../context/AppContext'
-import { getCurrentUser, setCurrentUser, saveVisitedCustomer } from '../logic/dashboardStorage'
+import { getCurrentUser, setCurrentUser } from '../lib/db/dashboard'
+import { saveCustomer } from '../lib/db/customers'
+import { addEvent, updateEventData } from '../lib/db/events'
+import { uploadPhoto } from '../lib/db/storage'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const BIZ_TYPES = [
-  'किराना / जनरल स्टोर', 'हार्डवेयर / सैनिटरी', 'इलेक्ट्रिकल',
-  'कपड़े / रेडीमेड', 'मोबाइल / इलेक्ट्रॉनिक्स', 'डेयरी / दूध की दुकान',
-  'चिकित्सा / फार्मेसी', 'जूते-चप्पल', 'सेवाएं / Services',
+  { label: 'किराना / जनरल स्टोर',    emoji: '🛒' },
+  { label: 'हार्डवेयर / सैनिटरी',     emoji: '🔧' },
+  { label: 'इलेक्ट्रिकल',              emoji: '⚡' },
+  { label: 'कपड़े / रेडीमेड',          emoji: '👔' },
+  { label: 'मोबाइल / इलेक्ट्रॉनिक्स', emoji: '📱' },
+  { label: 'डेयरी / दूध की दुकान',    emoji: '🥛' },
+  { label: 'चिकित्सा / फार्मेसी',      emoji: '💊' },
+  { label: 'जूते-चप्पल',               emoji: '👟' },
+  { label: 'सेवाएं / Services',         emoji: '🛠️' },
+  { label: 'ऑटो पार्ट्स',              emoji: '🔩' },
+  { label: 'फैंसी स्टोर',              emoji: '✨' },
+  { label: 'पेंट की दुकान',            emoji: '🎨' },
+  { label: 'फर्नीचर',                  emoji: '🪑' },
 ]
 
 const SEASONS = [
@@ -62,9 +75,11 @@ const EMPTY = {
   peakMonths:          [],
   offSeasonSales:      '',
   offSeasonSalesOther: '',
+  offSeasonRevenue:    '',   // exact monthly off-season revenue (number input)
   investmentTiming:    '',
   prepTime:            '',
   prepTimeOther:       '',
+  investBeforeSeason:  '',   // exact days before season they prepare (number input)
   problems:            [],
   decisionDelay:       '',
   mindset:             [],
@@ -76,11 +91,11 @@ const EMPTY = {
 
 // ── Small reusable pieces ────────────────────────────────────────────────────
 
-function SectionHeader({ num, title }) {
+function SectionHeader({ num, title, error }) {
   return (
     <div className="flex items-start gap-2 mb-3">
-      <span className="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">{num}</span>
-      <p className="text-sm font-bold text-slate-800 leading-snug">{title}</p>
+      <span className={`flex-shrink-0 w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center ${error ? 'bg-red-500' : 'bg-indigo-600'}`}>{num}</span>
+      <p className={`text-sm font-bold leading-snug ${error ? 'text-red-500' : 'text-slate-800'}`}>{title}</p>
     </div>
   )
 }
@@ -190,14 +205,50 @@ function fmtDateTime(d) {
   return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
 }
 
+// Safe array helper — always returns an array even if value from Supabase is null/undefined
+const arr = v => Array.isArray(v) ? v : []
+
 const MIN_PHOTOS = 3
 
 export default function S_CustomerForm() {
-  const { closeCustomerForm } = useApp()
+  const { closeCustomerForm, setCustomerId, update, customerFormInitialData } = useApp()
   const [salesmanName, setSalesmanName] = useState(() => getCurrentUser())
   const [step, setStep]           = useState(0)
-  const [data, setData]           = useState(() => ({ ...EMPTY, capturedAt: new Date() }))
-  const [submitted, setSubmitted] = useState(false)
+  const [data, setData]           = useState(() => {
+    if (customerFormInitialData) {
+      const d = customerFormInitialData
+      return {
+        ...EMPTY,
+        capturedAt:          new Date(),
+        shopName:            d.shopName            || '',
+        ownerName:           d.ownerName           || '',
+        city:                d.city                || '',
+        market:              d.market              || '',
+        mobile:              d.mobile              || '',
+        bizTypes:            d.bizTypes            || [],
+        bizTypeOther:        d.bizTypeOther        || '',
+        seasons:             d.seasons             || [],
+        seasonOther:         d.seasonOther         || '',
+        peakMonths:          d.peakMonths          || [],
+        offSeasonSales:      d.offSeasonSales      || '',
+        offSeasonSalesOther: d.offSeasonSalesOther || '',
+        investmentTiming:    d.investmentTiming    || '',
+        prepTime:            d.prepTime            || '',
+        prepTimeOther:       d.prepTimeOther       || '',
+        problems:            d.problems            || [],
+        decisionDelay:       d.decisionDelay       || '',
+        mindset:             d.mindset             || [],
+        mindsetOther:        d.mindsetOther        || '',
+      }
+    }
+    return { ...EMPTY, capturedAt: new Date() }
+  })
+  const [submitted,    setSubmitted]    = useState(false)
+  const [submitting,   setSubmitting]   = useState(false)
+  const [submitError,  setSubmitError]  = useState(null)
+  const [showErrors,   setShowErrors]   = useState(false)
+  // photoFiles holds File objects for upload; data.photos holds blob URLs for preview
+  const [photoFiles, setPhotoFiles] = useState([])
   const cameraRef  = useRef()
   const galleryRef = useRef()
 
@@ -208,9 +259,10 @@ export default function S_CustomerForm() {
 
   const set = (key, val) => setData(d => ({ ...d, [key]: val }))
 
+  // Always treat the field as an array — safe even if Supabase returned null/undefined
   function toggleArr(key, val, max) {
     setData(d => {
-      const arr = d[key]
+      const arr = Array.isArray(d[key]) ? d[key] : []
       if (arr.includes(val)) return { ...d, [key]: arr.filter(v => v !== val) }
       if (max && arr.length >= max) return d
       return { ...d, [key]: [...arr, val] }
@@ -218,40 +270,107 @@ export default function S_CustomerForm() {
   }
 
   // ── Validation ────────────────────────────────────────────────────────────
-  const step0Valid = data.shopName.trim() && data.ownerName.trim() && data.mobile.trim().length === 10
-  const step1Valid = data.bizTypes.length > 0 || data.bizTypeOther.trim()
-  const step2Valid = data.photos.length >= MIN_PHOTOS
+  const step0Valid = !!(data.shopName.trim() && data.ownerName.trim() && data.city.trim() && data.market.trim() && data.mobile.trim().length === 10)
 
-  function canNext() {
-    if (step === 1) return step1Valid
-    return true
-  }
+  const q1Valid = data.bizTypes.length > 0 || !!data.bizTypeOther.trim()
+  const q2Valid = data.seasons.length > 0  || !!data.seasonOther.trim()
+  const q3Valid = data.peakMonths.length > 0
+  const q4Valid = !!data.offSeasonSales
+  const q5Valid = !!data.investmentTiming
+  const q6Valid = !!data.prepTime
+  const q7Valid = data.problems.length > 0
+  const q8Valid = !!data.decisionDelay
+  const q9Valid = data.mindset.length > 0
+  const step1Valid = q1Valid && q2Valid && q3Valid && q4Valid && q5Valid && q6Valid && q7Valid && q8Valid && q9Valid
+
+  const allValid = step0Valid && step1Valid
+
+  function canGoToStep(_i) { return true }
 
   // ── Photos ────────────────────────────────────────────────────────────────
   function handleFiles(files) {
     if (!files.length) return
-    const newUrls = Array.from(files).map(f => URL.createObjectURL(f))
-    setData(d => ({ ...d, photos: [...d.photos, ...newUrls] }))
+    const fileArr = Array.from(files)
+    const urls    = fileArr.map(f => URL.createObjectURL(f))
+    setData(d => ({ ...d, photos: [...d.photos, ...urls] }))
+    setPhotoFiles(prev => [...prev, ...fileArr])   // keep File objects for upload
   }
 
   function removePhoto(idx) {
     setData(d => ({ ...d, photos: d.photos.filter((_, i) => i !== idx) }))
+    setPhotoFiles(prev => prev.filter((_, i) => i !== idx))
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────
-  function submit() {
-    if (salesmanName) {
-      saveVisitedCustomer(salesmanName, {
-        shopName:  data.shopName,
-        ownerName: data.ownerName,
-        mobile:    data.mobile,
-        city:      data.city,
-        market:    data.market,
-      })
+  async function submit() {
+    if (!salesmanName) return
+    setShowErrors(true)
+    if (!allValid) return
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      const isEdit = !!customerFormInitialData
+      let cid
+
+      if (isEdit) {
+        // Edit mode — reuse existing customer_id, update the existing event in-place
+        cid = customerFormInitialData.customerId
+      } else {
+        // New lead — upsert customer record, get customer_id
+        const customer = await saveCustomer({
+          name:       data.ownerName || data.shopName,
+          mobile:     data.mobile    || null,
+          shop_name:  data.shopName,
+          owner_name: data.ownerName,
+          area:       data.city,
+          landmark:   data.market,
+          stage:      'visited',
+        })
+        cid = customer.customer_id
+      }
+
+      // Upload any new photos to Supabase Storage, collect public URLs
+      let photoUrls = isEdit ? (customerFormInitialData.photoUrls || []) : []
+      if (photoFiles.length > 0) {
+        const results = await Promise.allSettled(photoFiles.map(f => uploadPhoto(f, cid)))
+        const failed = results.filter(r => r.status === 'rejected')
+        if (failed.length > 0) {
+          console.error('[photo upload]', failed[0].reason)
+          throw new Error(`Photo upload failed: ${failed[0].reason?.message || failed[0].reason}`)
+        }
+        photoUrls = [...photoUrls, ...results.map(r => r.value)]
+      }
+
+      // Build formData: strip local-only fields, add public photo URLs
+      const { photos: _blobs, capturedAt: _ts, ...formData } = data
+
+      if (isEdit) {
+        // Update the existing visit_done event in-place — no new row created
+        await updateEventData(customerFormInitialData.id, { ...formData, photoUrls })
+      } else {
+        await addEvent(cid, 'visit_done', { ...formData, photoUrls }, salesmanName)
+      }
+
+      // Share customer_id and sync bizTypes to AppContext so ROI tool auto-fills
+      setCustomerId(cid)
+      update('bizTypes', data.bizTypes)
+      update('bizTypeOther', data.bizTypeOther)
+      update('businessType', data.bizTypes.filter(v => v !== '__other__')[0] || '')
+
+      setSubmitted(true)
+    } catch (err) {
+      setSubmitError(err.message || 'Submit karne mein error aayi. Dobara try karein.')
+    } finally {
+      setSubmitting(false)
     }
-    setSubmitted(true)
   }
-  function reset()  { setData({ ...EMPTY, capturedAt: new Date() }); setStep(0); setSubmitted(false) }
+
+  function reset() {
+    setData({ ...EMPTY, capturedAt: new Date() })
+    setPhotoFiles([])
+    setStep(0)
+    setSubmitted(false)
+  }
 
   // ── Login gate ────────────────────────────────────────────────────────────
   if (!salesmanName) {
@@ -283,15 +402,33 @@ export default function S_CustomerForm() {
             </div>
           )}
           <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2 text-xs text-slate-600">
-            {data.bizTypes.length > 0     && <p><span className="font-bold">Business:</span> {data.bizTypes.join(', ')}{data.bizTypeOther ? `, ${data.bizTypeOther}` : ''}</p>}
-            {data.seasons.length > 0      && <p><span className="font-bold">Season:</span> {data.seasons.join(', ')}{data.seasonOther ? `, ${data.seasonOther}` : ''}</p>}
-            {data.peakMonths.length > 0   && <p><span className="font-bold">Peak Months:</span> {data.peakMonths.join(', ')}</p>}
-            {data.offSeasonSales          && <p><span className="font-bold">Off Season Sales:</span> {data.offSeasonSales}{data.offSeasonSalesOther ? ` / ${data.offSeasonSalesOther}` : ''}</p>}
-            {data.investmentTiming        && <p><span className="font-bold">Investment:</span> {data.investmentTiming}</p>}
-            {data.prepTime                && <p><span className="font-bold">Prep Time:</span> {data.prepTime}{data.prepTimeOther ? ` / ${data.prepTimeOther}` : ''}</p>}
-            {data.problems.length > 0     && <p><span className="font-bold">Problems:</span> {data.problems.join(', ')}</p>}
-            {data.decisionDelay           && <p><span className="font-bold">Decision Delay:</span> {data.decisionDelay}</p>}
-            {data.mindset.length > 0      && <p><span className="font-bold">Mindset:</span> {data.mindset.join(', ')}{data.mindsetOther ? `, ${data.mindsetOther}` : ''}</p>}
+            {(arr(data.bizTypes).filter(v => v !== '__other__').length > 0 || data.bizTypeOther) && (
+              <p><span className="font-bold">Business:</span> {[...arr(data.bizTypes).filter(v => v !== '__other__'), data.bizTypeOther].filter(Boolean).join(', ')}</p>
+            )}
+            {(arr(data.seasons).length > 0 || data.seasonOther) && (
+              <p><span className="font-bold">Season:</span> {[...arr(data.seasons), data.seasonOther].filter(Boolean).join(', ')}</p>
+            )}
+            {arr(data.peakMonths).length > 0 && (
+              <p><span className="font-bold">Peak Months:</span> {arr(data.peakMonths).join(', ')}</p>
+            )}
+            {data.offSeasonSales && (
+              <p><span className="font-bold">Off Season Sales:</span> {data.offSeasonSales}{data.offSeasonSalesOther ? ` / ${data.offSeasonSalesOther}` : ''}</p>
+            )}
+            {data.investmentTiming && (
+              <p><span className="font-bold">Investment:</span> {data.investmentTiming}</p>
+            )}
+            {data.prepTime && (
+              <p><span className="font-bold">Prep Time:</span> {data.prepTime}{data.prepTimeOther ? ` / ${data.prepTimeOther}` : ''}</p>
+            )}
+            {arr(data.problems).length > 0 && (
+              <p><span className="font-bold">Problems:</span> {arr(data.problems).join(', ')}</p>
+            )}
+            {data.decisionDelay && (
+              <p><span className="font-bold">Decision Delay:</span> {data.decisionDelay}</p>
+            )}
+            {arr(data.mindset).length > 0 && (
+              <p><span className="font-bold">Mindset:</span> {arr(data.mindset).join(', ')}{data.mindsetOther ? `, ${data.mindsetOther}` : ''}</p>
+            )}
           </div>
         </div>
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] bg-white border-t border-slate-200 p-4 flex gap-3">
@@ -310,7 +447,9 @@ export default function S_CustomerForm() {
       <div className="bg-indigo-700 text-white pt-12 pb-4 px-5 flex-shrink-0">
         <div className="flex items-center justify-between mb-1">
           <div>
-            <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">Customer Engagement</p>
+            <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">
+              Customer Engagement{customerFormInitialData ? ' · ✏️ Edit' : ''}
+            </p>
             <h1 className="text-xl font-extrabold leading-tight">{STEPS[step].icon} {STEPS[step].label}</h1>
             <p className="text-xs text-indigo-300 mt-0.5">🕐 {fmtDateTime(data.capturedAt)}</p>
           </div>
@@ -326,18 +465,24 @@ export default function S_CustomerForm() {
         <div className="flex gap-2">
           {STEPS.map((s, i) => {
             const done =
-              i === 0 ? !!(data.shopName.trim() && data.ownerName.trim() && data.mobile.length === 10) :
-              i === 1 ? !!(data.bizTypes.length > 0 || data.bizTypeOther.trim()) :
+              i === 0 ? step0Valid :
+              i === 1 ? step1Valid :
               data.photos.length >= MIN_PHOTOS
             const active = i === step
+            const tappable = canGoToStep(i)
             return (
-              <div key={i} className="flex-1">
+              <button
+                key={i}
+                className="flex-1 text-left"
+                disabled={!tappable}
+                onClick={() => tappable && setStep(i)}
+              >
                 <div className={`h-1.5 rounded-full transition-all ${done ? 'bg-green-400' : active ? 'bg-white' : 'bg-white/30'}`} />
                 <div className="flex items-center gap-1 mt-1">
                   {done && <span className="text-green-400 text-[10px] font-bold">✓</span>}
                   <p className={`text-[10px] font-medium truncate ${active ? 'text-white' : done ? 'text-green-300' : 'text-indigo-300'}`}>{s.label}</p>
                 </div>
-              </div>
+              </button>
             )
           })}
         </div>
@@ -350,14 +495,17 @@ export default function S_CustomerForm() {
         {step === 0 && (
           <div className="space-y-3">
             {[
-              { key: 'shopName',  label: '🏪 दुकान का नाम',                                    placeholder: 'Ram Kirana Store', type: 'text', textOnly: true  },
-              { key: 'ownerName', label: '👤 दुकान मालिक का नाम',                              placeholder: 'Ram Lal Gupta',   type: 'text', textOnly: true  },
-              { key: 'city',      label: '📍 गांव/शहर का नाम (जहाँ व्यापार चलता है)',          placeholder: 'जैसे: Jaipur',    type: 'text', textOnly: true  },
-              { key: 'market',    label: '🏬 मार्केट का नाम',                                   placeholder: 'जैसे: Johri Bazar', type: 'text', textOnly: true  },
-              { key: 'mobile',    label: '📞 मोबाइल नंबर',                                     placeholder: '9876543210',       type: 'tel',  numOnly: true, maxLength: 10 },
-            ].map(f => (
-              <div key={f.key} className="bg-white rounded-2xl border border-slate-200 px-4 py-3 shadow-sm">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{f.label}</label>
+              { key: 'shopName',  label: '🏪 दुकान का नाम',                                    placeholder: 'Ram Kirana Store',  type: 'text', textOnly: true, required: true },
+              { key: 'ownerName', label: '👤 दुकान मालिक का नाम',                              placeholder: 'Ram Lal Gupta',    type: 'text', textOnly: true, required: true },
+              { key: 'city',      label: '📍 गांव/शहर का नाम (जहाँ व्यापार चलता है)',          placeholder: 'जैसे: Jaipur',     type: 'text', textOnly: true, required: true },
+              { key: 'market',    label: '🏬 मार्केट का नाम',                                   placeholder: 'जैसे: Johri Bazar', type: 'text', textOnly: true, required: true },
+              { key: 'mobile',    label: '📞 मोबाइल नंबर',                                     placeholder: '9876543210',        type: 'tel',  numOnly: true, maxLength: 10, required: true },
+            ].map(f => {
+              const isEmpty = f.required && (f.key === 'mobile' ? data.mobile.trim().length !== 10 : !data[f.key].trim())
+              const hasError = showErrors && isEmpty
+              return (
+              <div key={f.key} className={`bg-white rounded-2xl border px-4 py-3 shadow-sm ${hasError ? 'border-red-400' : 'border-slate-200'}`}>
+                <label className={`text-xs font-bold uppercase tracking-wider ${hasError ? 'text-red-500' : 'text-slate-500'}`}>{f.label}{f.required ? ' *' : ''}</label>
                 <input
                   type={f.type}
                   inputMode={f.numOnly ? 'numeric' : 'text'}
@@ -373,9 +521,9 @@ export default function S_CustomerForm() {
                   className="w-full mt-1 text-base font-semibold text-slate-800 outline-none placeholder:text-slate-300"
                 />
               </div>
-            ))}
-            {data.mobile && data.mobile.length !== 10 && (
-              <p className="text-xs text-red-500 px-1">Mobile number 10 digits ka hona chahiye</p>
+            )})}
+            {showErrors && !step0Valid && (
+              <p className="text-xs text-red-500 px-1 font-medium">* लाल फील्ड भरना ज़रूरी है</p>
             )}
           </div>
         )}
@@ -386,19 +534,40 @@ export default function S_CustomerForm() {
 
             {/* Q1 Business Type */}
             <Card>
-              <SectionHeader num="1" title="किस चीज़ का व्यापार है?" />
-              {BIZ_TYPES.map(opt => (
-                <CheckItem key={opt} label={opt} checked={data.bizTypes.includes(opt)} onChange={() => toggleArr('bizTypes', opt)} />
-              ))}
-              <CheckItem label="Other" checked={!!data.bizTypeOther} onChange={() => {}} />
-              {(data.bizTypes.length === BIZ_TYPES.length || data.bizTypeOther !== undefined) && (
+              <SectionHeader num="1" title="किस चीज़ का व्यापार है? *" error={showErrors && !step1Valid} />
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                {BIZ_TYPES.map(bt => {
+                  const checked = data.bizTypes.includes(bt.label)
+                  return (
+                    <button
+                      key={bt.label}
+                      onClick={() => toggleArr('bizTypes', bt.label)}
+                      className={`py-2.5 px-2 rounded-xl text-xs font-semibold text-left border-2 transition-all active:scale-95
+                        ${checked ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-700'}`}
+                    >
+                      {bt.emoji} {bt.label}
+                    </button>
+                  )
+                })}
+                <button
+                  onClick={() => {
+                    toggleArr('bizTypes', '__other__')
+                    if (data.bizTypes.includes('__other__')) set('bizTypeOther', '')
+                  }}
+                  className={`py-2.5 px-2 rounded-xl text-xs font-semibold text-left border-2 transition-all active:scale-95
+                    ${data.bizTypes.includes('__other__') ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-700'}`}
+                >
+                  ✏️ Other
+                </button>
+              </div>
+              {data.bizTypes.includes('__other__') && (
                 <OtherInput value={data.bizTypeOther} onChange={v => set('bizTypeOther', v)} />
               )}
             </Card>
 
             {/* Q2 Season */}
             <Card>
-              <SectionHeader num="2" title="व्यापार का सीजन (सबसे ज़्यादा बिक्री का समय)" />
+              <SectionHeader num="2" title="व्यापार का सीजन (सबसे ज़्यादा बिक्री का समय) *" error={showErrors && !q2Valid} />
               {SEASONS.map(opt => (
                 <CheckItem key={opt} label={opt} checked={data.seasons.includes(opt)} onChange={() => toggleArr('seasons', opt)} />
               ))}
@@ -407,7 +576,7 @@ export default function S_CustomerForm() {
 
             {/* Q3 Peak Months */}
             <Card>
-              <SectionHeader num="3" title="साल के किस महीने में सबसे ज़्यादा बिक्री होती है?" />
+              <SectionHeader num="3" title="साल के किस महीने में सबसे ज़्यादा बिक्री होती है? *" error={showErrors && !q3Valid} />
               <div className="grid grid-cols-3 gap-1.5">
                 {MONTHS.map(m => {
                   const checked = data.peakMonths.includes(m)
@@ -427,7 +596,7 @@ export default function S_CustomerForm() {
 
             {/* Q4 Off Season Sales */}
             <Card>
-              <SectionHeader num="4" title="ऑफ सीजन बिक्री (महीने की)" />
+              <SectionHeader num="4" title="ऑफ सीजन बिक्री (महीने की) *" error={showErrors && !q4Valid} />
               {OFF_SEASON_SALES.map(opt => (
                 <RadioItem key={opt} label={opt} checked={data.offSeasonSales === opt} onChange={() => set('offSeasonSales', opt)} />
               ))}
@@ -439,7 +608,7 @@ export default function S_CustomerForm() {
 
             {/* Q5 Investment Timing */}
             <Card>
-              <SectionHeader num="5" title="आप बिजनेस में नया पैसा कब लगाते हो?" />
+              <SectionHeader num="5" title="आप बिजनेस में नया पैसा कब लगाते हो? *" error={showErrors && !q5Valid} />
               {INVESTMENT_TIMING.map(opt => (
                 <RadioItem key={opt} label={opt} checked={data.investmentTiming === opt} onChange={() => set('investmentTiming', opt)} />
               ))}
@@ -447,7 +616,7 @@ export default function S_CustomerForm() {
 
             {/* Q6 Prep Time */}
             <Card>
-              <SectionHeader num="6" title="सीजन के कितने दिन पहले तैयारी करते हो?" />
+              <SectionHeader num="6" title="सीजन के कितने दिन पहले तैयारी करते हो? *" error={showErrors && !q6Valid} />
               {PREP_TIME.map(opt => (
                 <RadioItem key={opt} label={opt} checked={data.prepTime === opt} onChange={() => set('prepTime', opt)} />
               ))}
@@ -459,7 +628,7 @@ export default function S_CustomerForm() {
 
             {/* Q7 Problems (max 2) */}
             <Card>
-              <SectionHeader num="7" title="इन में से कौनसी समस्या सबसे ज़्यादा है? (कोई दो चुनें)" />
+              <SectionHeader num="7" title="इन में से कौनसी समस्या सबसे ज़्यादा है? (कोई दो चुनें) *" error={showErrors && !q7Valid} />
               {data.problems.length >= 2 && (
                 <p className="text-xs text-amber-600 font-semibold mb-2">✓ 2 problems select ho gayi — change karne ke liye pehle ek hatao</p>
               )}
@@ -475,18 +644,17 @@ export default function S_CustomerForm() {
 
             {/* Q8 Decision Delay */}
             <Card>
-              <SectionHeader num="8" title="क्या कभी पैसों की वजह से बिजनेस का डिसीजन टालना पड़ा है?" />
+              <SectionHeader num="8" title="क्या कभी पैसों की वजह से बिजनेस का डिसीजन टालना पड़ा है? *" error={showErrors && !q8Valid} />
               <RadioItem label="हाँ" checked={data.decisionDelay === 'हाँ'} onChange={() => set('decisionDelay', 'हाँ')} />
               <RadioItem label="नहीं" checked={data.decisionDelay === 'नहीं'} onChange={() => set('decisionDelay', 'नहीं')} />
             </Card>
 
             {/* Q9 Mindset */}
             <Card>
-              <SectionHeader num="9" title="आप किस तरफ ज़्यादा ध्यान दे रहे हैं?" />
+              <SectionHeader num="9" title="आप किस तरफ ज़्यादा ध्यान दे रहे हैं? *" error={showErrors && !q9Valid} />
               {MINDSET.map(opt => (
-                <CheckItem key={opt} label={opt} checked={data.mindset.includes(opt)} onChange={() => toggleArr('mindset', opt)} />
+                <RadioItem key={opt} label={opt} checked={data.mindset[0] === opt} onChange={() => set('mindset', [opt])} />
               ))}
-              <OtherInput value={data.mindsetOther} onChange={v => set('mindsetOther', v)} placeholder="Other..." />
             </Card>
 
           </div>
@@ -576,25 +744,37 @@ export default function S_CustomerForm() {
       </div>
 
       {/* Footer */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] bg-white border-t border-slate-200 px-4 py-4 flex gap-3 z-30">
-        {step > 0 ? (
-          <button onClick={() => setStep(s => s - 1)} className="flex-1 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-600 active:scale-95 transition-all">
-            ← Back
-          </button>
-        ) : (
-          <button onClick={closeCustomerForm} className="flex-1 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-500 active:scale-95 transition-all">
-            Cancel
-          </button>
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] bg-white border-t border-slate-200 px-4 py-4 z-30">
+        {showErrors && !allValid && (
+          <p className="text-xs text-red-500 font-semibold mb-2 text-center">
+            ⚠️ {!step0Valid
+              ? '"Samanya Jaankari" mein laal fields bharo'
+              : '"Vyapar Jaankari" mein laal sawal (*)  bharo'}
+          </p>
         )}
-        {step < 2 ? (
-          <button disabled={!canNext()} onClick={() => setStep(s => s + 1)} className="flex-1 py-3.5 rounded-xl bg-indigo-600 text-white text-sm font-bold disabled:opacity-40 active:scale-95 transition-all">
-            Aage →
-          </button>
-        ) : (
-          <button disabled={!step2Valid} onClick={submit} className="flex-1 py-3.5 rounded-xl bg-green-600 text-white text-sm font-bold disabled:opacity-40 active:scale-95 transition-all">
-            ✅ Submit Karen
-          </button>
+        {submitError && (
+          <p className="text-xs text-red-500 font-semibold mb-2 text-center">⚠️ {submitError}</p>
         )}
+        <div className="flex gap-3">
+          {step > 0 ? (
+            <button onClick={() => setStep(s => s - 1)} className="flex-1 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-600 active:scale-95 transition-all">
+              ← Back
+            </button>
+          ) : (
+            <button onClick={closeCustomerForm} className="flex-1 py-3.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-500 active:scale-95 transition-all">
+              Cancel
+            </button>
+          )}
+          {step < 2 ? (
+            <button onClick={() => setStep(s => s + 1)} className="flex-1 py-3.5 rounded-xl bg-indigo-600 text-white text-sm font-bold active:scale-95 transition-all">
+              Aage →
+            </button>
+          ) : (
+            <button disabled={submitting} onClick={submit} className="flex-1 py-3.5 rounded-xl bg-green-600 text-white text-sm font-bold disabled:opacity-40 active:scale-95 transition-all">
+              {submitting ? 'Saving...' : '✅ Submit Karen'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

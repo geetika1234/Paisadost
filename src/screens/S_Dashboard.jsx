@@ -1,18 +1,42 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useApp } from '../context/AppContext'
 import {
-  getCurrentUser, setCurrentUser, getUserData,
-  getVisitedCustomers, markCustomerFileLogin,
-} from '../logic/dashboardStorage'
+  getCurrentUser, setCurrentUser,
+  getDashboardStats, getVisitedCustomers, markCustomerFileLogin,
+} from '../lib/db/dashboard'
 
 const DAILY_TARGET   = 20
 const MONTHLY_TARGET = 400
 const LOGIN_TARGET   = 40
 
+// ── Group customers by visit date ─────────────────────────────────────────────
+function groupByDate(customers) {
+  const today     = new Date().toDateString()
+  const yesterday = new Date(Date.now() - 86400000).toDateString()
+  const groups    = {}
+
+  customers.forEach(c => {
+    const d   = new Date(c.visitedAt)
+    const key = d.toDateString()
+    if (!groups[key]) groups[key] = { date: d, items: [] }
+    groups[key].items.push(c)
+  })
+
+  return Object.entries(groups)
+    .sort((a, b) => b[1].date - a[1].date)
+    .map(([key, g]) => {
+      const label =
+        key === today     ? `Aaj — ${g.date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` :
+        key === yesterday ? `Kal — ${g.date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` :
+        g.date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+      return { label, items: g.items }
+    })
+}
+
 // ── Ring Progress SVG ─────────────────────────────────────────────────────────
 
 function RingProgress({ value, max, size = 88, stroke = 8, color = '#4f46e5' }) {
-  const r   = (size - stroke) / 2
+  const r    = (size - stroke) / 2
   const circ = 2 * Math.PI * r
   const pct  = Math.min(value / max, 1)
   const dash = circ * pct
@@ -77,41 +101,139 @@ function LoginView({ onLogin, onClose }) {
 
 // ── Customer visit row ────────────────────────────────────────────────────────
 
-function CustomerRow({ customer, onFileLogin }) {
+function CustomerRow({ customer, onFileLogin, onEdit }) {
+  const [expanded, setExpanded] = useState(false)
   const time = new Date(customer.visitedAt).toLocaleTimeString('en-IN', {
     hour: '2-digit', minute: '2-digit', hour12: true,
   })
+
+  const visibleBizTypes = (customer.bizTypes || []).filter(v => v !== '__other__')
+  const hasDetails = visibleBizTypes.length > 0 || customer.bizTypeOther ||
+    (customer.problems || []).length > 0 || (customer.seasons || []).length > 0 ||
+    customer.offSeasonSales || customer.prepTime || (customer.photoUrls || []).length > 0
+
   return (
-    <div className={`bg-white rounded-2xl border px-4 py-3 mb-2.5 flex items-center gap-3
+    <div className={`bg-white rounded-2xl border mb-2.5 overflow-hidden
       ${customer.fileLogin ? 'border-green-200 bg-green-50/30' : 'border-slate-200'}`}>
-      <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-extrabold
-        ${customer.fileLogin ? 'bg-green-100 text-green-700' : 'bg-indigo-50 text-indigo-600'}`}>
-        {customer.shopName.charAt(0).toUpperCase()}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-extrabold text-slate-800 truncate">{customer.shopName}</p>
-        <p className="text-xs text-slate-400 truncate">
-          {customer.ownerName}
-          {customer.city   ? ` · ${customer.city}`   : ''}
-          {customer.market ? ` · ${customer.market}` : ''}
-        </p>
-        <div className="flex items-center gap-2 mt-0.5">
-          <p className="text-[10px] text-slate-400">🕐 {time}</p>
-          {customer.mobile ? <p className="text-[10px] text-slate-400">📞 {customer.mobile}</p> : null}
+
+      {/* Main row */}
+      <div className="px-4 py-3 flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-extrabold
+          ${customer.fileLogin ? 'bg-green-100 text-green-700' : 'bg-indigo-50 text-indigo-600'}`}>
+          {customer.shopName.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-extrabold text-slate-800 truncate">{customer.shopName}</p>
+          <p className="text-xs text-slate-400 truncate">
+            {customer.ownerName}
+            {customer.city   ? ` · ${customer.city}`   : ''}
+            {customer.market ? ` · ${customer.market}` : ''}
+          </p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-[10px] text-slate-400">🕐 {time}</p>
+            {customer.mobile ? <p className="text-[10px] text-slate-400">📞 {customer.mobile}</p> : null}
+            {hasDetails && (
+              <button onClick={() => setExpanded(e => !e)} className="text-[10px] font-bold text-indigo-500">
+                {expanded ? '▲ Less' : '▼ Details'}
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="flex-shrink-0 flex flex-col gap-1.5 items-end">
+          {!customer.fileLogin && (
+            <button
+              onClick={() => onEdit(customer)}
+              className="text-[10px] font-bold text-slate-400 border border-slate-200 rounded-lg px-2 py-1 active:scale-95 transition-all"
+            >
+              ✏️ Edit
+            </button>
+          )}
+          {customer.fileLogin ? (
+            <div className="flex items-center gap-1 bg-green-100 border border-green-200 rounded-xl px-2.5 py-1.5">
+              <span className="text-xs">✅</span>
+              <span className="text-xs font-bold text-green-700">Done</span>
+            </div>
+          ) : (
+            <button
+              onClick={() => onFileLogin(customer.id)}
+              className="bg-indigo-600 text-white text-xs font-bold rounded-xl px-3 py-2 active:scale-95 transition-all shadow-sm shadow-indigo-200 whitespace-nowrap"
+            >
+              File Login
+            </button>
+          )}
         </div>
       </div>
-      {customer.fileLogin ? (
-        <div className="flex-shrink-0 flex items-center gap-1 bg-green-100 border border-green-200 rounded-xl px-2.5 py-1.5">
-          <span className="text-xs">✅</span>
-          <span className="text-xs font-bold text-green-700">Done</span>
+
+      {/* Expandable detail panel — reads arrays from event.data */}
+      {expanded && hasDetails && (
+        <div className="border-t border-slate-100 px-4 py-3 space-y-1.5 bg-slate-50">
+          {(visibleBizTypes.length > 0 || customer.bizTypeOther) && (
+            <p className="text-xs text-slate-600">
+              <span className="font-bold text-slate-700">Business: </span>
+              {[...visibleBizTypes, customer.bizTypeOther].filter(Boolean).join(', ')}
+            </p>
+          )}
+          {(customer.seasons || []).length > 0 && (
+            <p className="text-xs text-slate-600">
+              <span className="font-bold text-slate-700">Season: </span>
+              {customer.seasons.join(', ')}
+              {customer.seasonOther ? `, ${customer.seasonOther}` : ''}
+            </p>
+          )}
+          {(customer.peakMonths || []).length > 0 && (
+            <p className="text-xs text-slate-600">
+              <span className="font-bold text-slate-700">Peak Months: </span>
+              {customer.peakMonths.join(', ')}
+            </p>
+          )}
+          {customer.offSeasonSales && (
+            <p className="text-xs text-slate-600">
+              <span className="font-bold text-slate-700">Off Season Sales: </span>
+              {customer.offSeasonSales === 'other' ? customer.offSeasonSalesOther : customer.offSeasonSales}
+            </p>
+          )}
+          {customer.investmentTiming && (
+            <p className="text-xs text-slate-600">
+              <span className="font-bold text-slate-700">Investment Timing: </span>
+              {customer.investmentTiming}
+            </p>
+          )}
+          {customer.prepTime && (
+            <p className="text-xs text-slate-600">
+              <span className="font-bold text-slate-700">Prep Time: </span>
+              {customer.prepTime === 'other' ? customer.prepTimeOther : customer.prepTime}
+            </p>
+          )}
+          {(customer.problems || []).length > 0 && (
+            <p className="text-xs text-slate-600">
+              <span className="font-bold text-slate-700">Problems: </span>
+              {customer.problems.join(', ')}
+            </p>
+          )}
+          {customer.decisionDelay && (
+            <p className="text-xs text-slate-600">
+              <span className="font-bold text-slate-700">Decision Delay: </span>
+              {customer.decisionDelay}
+            </p>
+          )}
+          {(customer.mindset || []).length > 0 && (
+            <p className="text-xs text-slate-600">
+              <span className="font-bold text-slate-700">Mindset: </span>
+              {customer.mindset.join(', ')}
+              {customer.mindsetOther ? `, ${customer.mindsetOther}` : ''}
+            </p>
+          )}
+          {(customer.photoUrls || []).length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-slate-700 mb-1.5">Photos:</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {customer.photoUrls.map((url, i) => (
+                  <img key={i} src={url} alt="" className="w-full aspect-square object-cover rounded-lg" />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      ) : (
-        <button
-          onClick={() => onFileLogin(customer.id)}
-          className="flex-shrink-0 bg-indigo-600 text-white text-xs font-bold rounded-xl px-3 py-2 active:scale-95 transition-all shadow-sm shadow-indigo-200 whitespace-nowrap"
-        >
-          File Login
-        </button>
       )}
     </div>
   )
@@ -120,32 +242,62 @@ function CustomerRow({ customer, onFileLogin }) {
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export default function S_Dashboard() {
-  const { closeDashboard } = useApp()
-  const [user, setUser]           = useState(() => getCurrentUser())
-  const [data, setData]           = useState(() => user ? getUserData(user) : null)
-  const [customers, setCustomers] = useState(() => user ? getVisitedCustomers(user) : [])
-  const [tab, setTab]             = useState('today') // 'today' | 'month'
+  const { closeDashboard, openCustomerFormForEdit } = useApp()
+
+  function handleEdit(customer) {
+    closeDashboard()
+    openCustomerFormForEdit(customer)
+  }
+  const [user,      setUser]      = useState(() => getCurrentUser())
+  const [data,      setData]      = useState({ todayVisits: 0, monthVisits: 0, fileLogin: 0 })
+  const [customers, setCustomers] = useState([])
+  const [loading,   setLoading]   = useState(false)
+  const [error,     setError]     = useState(null)
+  const [tab,       setTab]       = useState('today')
+
+  const loadDashboard = useCallback(async (salesman) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [stats, visits] = await Promise.all([
+        getDashboardStats(salesman),
+        getVisitedCustomers(salesman),
+      ])
+      setData(stats)
+      setCustomers(visits)
+    } catch (err) {
+      setError(err.message || 'Data load karne mein error aayi.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (user) loadDashboard(user)
+  }, [user, loadDashboard])
 
   function handleLogin(name) {
     setCurrentUser(name)
     setUser(name.trim())
-    setData(getUserData(name.trim()))
-    setCustomers(getVisitedCustomers(name.trim()))
   }
 
-  function handleFileLogin(customerId) {
-    markCustomerFileLogin(user, customerId)
-    setData(getUserData(user))
-    setCustomers(getVisitedCustomers(user))
+  async function handleFileLogin(customerId) {
+    setError(null)
+    try {
+      await markCustomerFileLogin(user, customerId)
+      await loadDashboard(user)
+    } catch (err) {
+      setError(err.message || 'File login mark karne mein error aayi.')
+    }
   }
 
   if (!user) return <LoginView onLogin={handleLogin} onClose={closeDashboard} />
 
   const todayStr       = new Date().toDateString()
   const todayCustomers = customers.filter(c => new Date(c.visitedAt).toDateString() === todayStr)
+  const allPending     = customers.filter(c => !c.fileLogin)
   const convRate       = data.monthVisits ? Math.round((data.fileLogin / data.monthVisits) * 100) : 0
-  const initials       = user.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-  const hotLead        = todayCustomers.find(c => !c.fileLogin) || null
+  const hotLead        = allPending[0] || null
 
   const todayLoggedIn  = todayCustomers.filter(c => c.fileLogin).length
   const todayPending   = todayCustomers.filter(c => !c.fileLogin).length
@@ -167,7 +319,6 @@ export default function S_Dashboard() {
 
         {/* Salesman + Daily Ring */}
         <div className="bg-white/15 rounded-2xl px-4 py-3 flex items-center gap-3">
-          {/* Ring */}
           <div className="relative flex-shrink-0">
             <RingProgress value={data.todayVisits} max={DAILY_TARGET} size={64} stroke={6} color="#a5b4fc" />
             <div className="absolute inset-0 flex items-center justify-center flex-col">
@@ -175,8 +326,6 @@ export default function S_Dashboard() {
               <p className="text-indigo-300 text-[9px] font-bold">visits</p>
             </div>
           </div>
-
-          {/* Name + role */}
           <div className="flex-1 min-w-0">
             <p className="text-white font-extrabold text-base leading-tight truncate">{user}</p>
             <p className="text-indigo-300 text-xs">Sales Executive</p>
@@ -184,9 +333,8 @@ export default function S_Dashboard() {
               {isOnTrack ? '🔥 On track!' : `${DAILY_TARGET - data.todayVisits} visits left for target`}
             </p>
           </div>
-
           <button
-            onClick={() => { setUser(null); setData(null); setCustomers([]) }}
+            onClick={() => { setUser(null); setData({ todayVisits: 0, monthVisits: 0, fileLogin: 0 }); setCustomers([]) }}
             className="text-indigo-300 text-xs font-semibold border border-indigo-400/50 rounded-lg px-2.5 py-1 active:scale-95 flex-shrink-0"
           >
             Switch
@@ -215,12 +363,26 @@ export default function S_Dashboard() {
           ))}
         </div>
 
+        {/* Error banner */}
+        {error && (
+          <div className="mx-4 mt-3 px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-600">
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* Loading spinner */}
+        {loading && (
+          <div className="flex items-center justify-center gap-2 py-6">
+            <div className="w-5 h-5 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+            <p className="text-xs font-semibold text-slate-400">Load ho raha hai...</p>
+          </div>
+        )}
+
         <div className="px-4 pt-4">
 
           {/* ══ TAB: AAJJ ══ */}
           {tab === 'today' && (
             <div>
-              {/* Status banner */}
               {data.todayVisits === 0 ? (
                 <div className="mb-4 px-4 py-3 rounded-2xl border bg-slate-50 border-slate-200 flex items-center gap-2">
                   <span>👋</span>
@@ -238,15 +400,14 @@ export default function S_Dashboard() {
                 </div>
               )}
 
-              {/* Today stats — 3 cards */}
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {[
-                  { label: 'Visits', value: data.todayVisits, target: DAILY_TARGET, color: 'indigo' },
-                  { label: 'Logined', value: todayLoggedIn,   target: null,          color: 'green'  },
-                  { label: 'Pending', value: todayPending,    target: null,          color: todayPending > 0 ? 'amber' : 'green' },
+                  { label: 'Visits',  value: data.todayVisits, target: DAILY_TARGET, color: 'indigo' },
+                  { label: 'Logined', value: todayLoggedIn,    target: null,          color: 'green'  },
+                  { label: 'Pending', value: todayPending,     target: null,          color: todayPending > 0 ? 'amber' : 'green' },
                 ].map(s => {
-                  const bg    = { indigo: 'bg-indigo-50', green: 'bg-green-50', amber: 'bg-amber-50' }
-                  const text  = { indigo: 'text-indigo-600', green: 'text-green-600', amber: 'text-amber-600' }
+                  const bg   = { indigo: 'bg-indigo-50', green: 'bg-green-50', amber: 'bg-amber-50' }
+                  const text = { indigo: 'text-indigo-600', green: 'text-green-600', amber: 'text-amber-600' }
                   return (
                     <div key={s.label} className={`${bg[s.color]} rounded-2xl p-3 text-center`}>
                       <p className={`text-2xl font-extrabold ${text[s.color]}`}>{s.value}</p>
@@ -257,7 +418,6 @@ export default function S_Dashboard() {
                 })}
               </div>
 
-              {/* Daily progress bar */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-3 mb-4">
                 <div className="flex justify-between items-center mb-2">
                   <p className="text-xs font-bold text-slate-600">Daily Target Progress</p>
@@ -274,7 +434,6 @@ export default function S_Dashboard() {
                 </p>
               </div>
 
-              {/* Today's customers */}
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-extrabold text-slate-700">Aaj ke Customers</p>
                 <span className="text-xs font-bold text-slate-400 bg-slate-200 rounded-full px-2.5 py-0.5">{todayCustomers.length}</span>
@@ -288,7 +447,7 @@ export default function S_Dashboard() {
                 </div>
               ) : (
                 todayCustomers.map(c => (
-                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} />
+                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} />
                 ))
               )}
             </div>
@@ -297,7 +456,6 @@ export default function S_Dashboard() {
           {/* ══ TAB: IS MAHINE ══ */}
           {tab === 'month' && (
             <div>
-              {/* Monthly ring + numbers */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-4 flex items-center gap-5">
                 <div className="relative flex-shrink-0">
                   <RingProgress value={data.monthVisits} max={MONTHLY_TARGET} size={80} stroke={7} color="#4f46e5" />
@@ -325,13 +483,12 @@ export default function S_Dashboard() {
                 </div>
               </div>
 
-              {/* Monthly cards grid */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {[
-                  { label: 'Total Visits',   value: data.monthVisits, sub: `Target: ${MONTHLY_TARGET}`, color: 'bg-indigo-50 text-indigo-600' },
-                  { label: 'File Logins',    value: data.fileLogin,   sub: `Target: ${LOGIN_TARGET}`,   color: 'bg-green-50 text-green-600'  },
-                  { label: 'Conversion %',   value: `${convRate}%`,   sub: convRate >= 10 ? 'Good!' : 'Improve karo', color: convRate >= 10 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500' },
-                  { label: 'Aaj ke Visits',  value: data.todayVisits, sub: `Target: ${DAILY_TARGET}`,   color: 'bg-purple-50 text-purple-600' },
+                  { label: 'Total Visits',  value: data.monthVisits, sub: `Target: ${MONTHLY_TARGET}`, color: 'bg-indigo-50 text-indigo-600' },
+                  { label: 'File Logins',   value: data.fileLogin,   sub: `Target: ${LOGIN_TARGET}`,   color: 'bg-green-50 text-green-600'   },
+                  { label: 'Conversion %',  value: `${convRate}%`,   sub: convRate >= 10 ? 'Good!' : 'Improve karo', color: convRate >= 10 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500' },
+                  { label: 'Aaj ke Visits', value: data.todayVisits, sub: `Target: ${DAILY_TARGET}`,   color: 'bg-purple-50 text-purple-600' },
                 ].map(s => (
                   <div key={s.label} className={`rounded-2xl p-4 ${s.color.split(' ')[0]}`}>
                     <p className="text-xs font-bold text-slate-500 mb-1">{s.label}</p>
@@ -341,8 +498,7 @@ export default function S_Dashboard() {
                 ))}
               </div>
 
-              {/* Monthly login progress bar */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-3">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-3 mb-4">
                 <div className="flex justify-between items-center mb-2">
                   <p className="text-xs font-bold text-slate-600">File Login Target</p>
                   <p className="text-xs font-extrabold text-amber-600">{data.fileLogin} / {LOGIN_TARGET}</p>
@@ -357,18 +513,41 @@ export default function S_Dashboard() {
                   {Math.round((data.fileLogin / LOGIN_TARGET) * 100)}% complete
                 </p>
               </div>
+
+              {/* All customers grouped by date */}
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-extrabold text-slate-700">Saare Customers</p>
+                <span className="text-xs font-bold text-slate-400 bg-slate-200 rounded-full px-2.5 py-0.5">{customers.length}</span>
+              </div>
+              {customers.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-200 px-4 py-8 text-center">
+                  <p className="text-3xl mb-2">🏪</p>
+                  <p className="text-sm font-bold text-slate-500">Koi customer nahi</p>
+                </div>
+              ) : (
+                groupByDate(customers).map(group => (
+                  <div key={group.label}>
+                    <div className="flex items-center gap-2 mb-2 mt-3">
+                      <span className="text-xs font-bold text-indigo-500">🗓️ {group.label}</span>
+                      <span className="text-[10px] text-slate-400 bg-slate-200 rounded-full px-1.5 py-0.5">{group.items.length}</span>
+                    </div>
+                    {group.items.map(c => (
+                      <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} />
+                    ))}
+                  </div>
+                ))
+              )}
             </div>
           )}
 
           {/* ══ TAB: LEADS ══ */}
           {tab === 'leads' && (
             <div>
-              {/* Hot lead card */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-4">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-extrabold text-slate-700">🎯 Next Lead</h2>
                   <span className="text-[10px] font-bold text-slate-400 bg-slate-100 rounded-full px-2 py-0.5">
-                    {todayPending} pending
+                    {allPending.length} pending
                   </span>
                 </div>
 
@@ -399,7 +578,7 @@ export default function S_Dashboard() {
                       📂 File Login Karen
                     </button>
                   </>
-                ) : todayCustomers.length === 0 ? (
+                ) : customers.length === 0 ? (
                   <div className="text-center py-6">
                     <p className="text-2xl mb-2">🏪</p>
                     <p className="text-sm font-bold text-slate-500">Koi lead nahi</p>
@@ -413,18 +592,22 @@ export default function S_Dashboard() {
                 )}
               </div>
 
-              {/* All today's leads */}
-              {todayCustomers.length > 0 && (
+              {allPending.length > 0 && (
                 <>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-extrabold text-slate-700">Aaj ke Saare Leads</p>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-green-600 bg-green-100 rounded-full px-2 py-0.5">{todayLoggedIn} done</span>
-                      <span className="text-[10px] font-bold text-amber-600 bg-amber-100 rounded-full px-2 py-0.5">{todayPending} left</span>
-                    </div>
+                    <p className="text-sm font-extrabold text-slate-700">Pending Leads</p>
+                    <span className="text-[10px] font-bold text-amber-600 bg-amber-100 rounded-full px-2 py-0.5">{allPending.length} left</span>
                   </div>
-                  {todayCustomers.map(c => (
-                    <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} />
+                  {groupByDate(allPending).map(group => (
+                    <div key={group.label}>
+                      <div className="flex items-center gap-2 mb-2 mt-3">
+                        <span className="text-xs font-bold text-amber-600">🗓️ {group.label}</span>
+                        <span className="text-[10px] text-slate-400 bg-slate-200 rounded-full px-1.5 py-0.5">{group.items.length}</span>
+                      </div>
+                      {group.items.map(c => (
+                        <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} />
+                      ))}
+                    </div>
                   ))}
                 </>
               )}
