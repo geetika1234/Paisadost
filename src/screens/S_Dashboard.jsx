@@ -83,7 +83,7 @@ function LoginView({ onLogin, onClose }) {
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
       <div className="bg-indigo-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
         <div>
-          <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">PaisaDost</p>
+          <img src="https://rzktrracmsxiwhryfxrw.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="PaisaDost" className="h-6 w-auto object-contain mb-1" />
           <h1 className="text-xl font-extrabold leading-tight mt-0.5">📊 Sales Dashboard</h1>
         </div>
         <button onClick={onClose} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-lg leading-none">×</button>
@@ -455,7 +455,7 @@ export default function S_Dashboard() {
       <div className="bg-indigo-700 text-white pt-12 pb-5 px-5 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">PaisaDost</p>
+            <img src="https://rzktrracmsxiwhryfxrw.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="PaisaDost" className="h-6 w-auto object-contain mb-1" />
             <h1 className="text-lg font-extrabold leading-tight mt-0.5">📊 Sales Dashboard</h1>
           </div>
           <button onClick={closeDashboard} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-xl leading-none">×</button>

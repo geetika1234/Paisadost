@@ -282,7 +282,7 @@ export default function S_PainDiscovery() {
       <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
         <div className="bg-indigo-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">PaisaDost</p>
+            <img src="https://rzktrracmsxiwhryfxrw.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="PaisaDost" className="h-6 w-auto object-contain mb-1" />
             <h1 className="text-lg font-extrabold leading-tight">🔍 Pain Discovery</h1>
           </div>
           <button onClick={closePainDiscovery} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-lg">×</button>
@@ -308,7 +308,7 @@ export default function S_PainDiscovery() {
       {/* Header */}
       <div className="bg-indigo-700 text-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between">
         <div>
-          <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">PaisaDost</p>
+          <img src="https://rzktrracmsxiwhryfxrw.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="PaisaDost" className="h-6 w-auto object-contain mb-1" />
           <h1 className="text-lg font-extrabold leading-tight">🔍 Pain Discovery</h1>
           <p className="text-xs text-indigo-200 font-semibold truncate mt-0.5">🏪 {activeCustomer?.shopName || ''}</p>
           <p className="text-xs text-indigo-300 mt-0.5">{totalDone} / {QUESTIONS.length} questions done</p>

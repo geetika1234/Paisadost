@@ -74,7 +74,7 @@ export default function S_QuickCreate() {
       <div className="bg-indigo-700 text-white pt-12 pb-5 px-5 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">PaisaDost</p>
+            <img src="https://rzktrracmsxiwhryfxrw.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="PaisaDost" className="h-6 w-auto object-contain mb-1" />
             <h1 className="text-xl font-extrabold leading-tight mt-0.5">🏪 Nayi Lead Banao</h1>
             {salesmanName && <p className="text-xs text-indigo-300 mt-0.5">👤 {salesmanName}</p>}
           </div>

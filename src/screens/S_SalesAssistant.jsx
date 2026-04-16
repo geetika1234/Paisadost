@@ -229,7 +229,7 @@ export default function S_SalesAssistant() {
       {/* Header */}
       <div className="bg-indigo-700 text-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between">
         <div>
-          <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">PaisaDost</p>
+          <img src="https://rzktrracmsxiwhryfxrw.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="PaisaDost" className="h-6 w-auto object-contain mb-1" />
           <h1 className="text-lg font-extrabold leading-tight">Sales Assistant 🤖</h1>
           <p className="text-xs text-indigo-300 mt-0.5">Customer ki situation batao — guide karunga</p>
         </div>

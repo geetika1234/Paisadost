@@ -20,9 +20,14 @@ export default function ScreenShell({ title, subtitle, step, total, onBack, chil
             <button onClick={onBack} className="text-white/70 text-xl leading-none">←</button>
           )}
           <div className="flex-1">
-            <p className="text-xs font-medium text-indigo-200 uppercase tracking-widest">
-              PaisaDost · Step {step + 1}/{total}
-            </p>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <img
+                src="https://rzktrracmsxiwhryfxrw.supabase.co/storage/v1/object/public/photos/LOGO.png"
+                alt="PaisaDost"
+                className="h-5 w-auto object-contain"
+              />
+              <span className="text-xs font-medium text-indigo-200 uppercase tracking-widest">· Step {step + 1}/{total}</span>
+            </div>
             <h1 className="text-xl font-extrabold leading-tight mt-0.5">{title}</h1>
             {subtitle && <p className="text-sm text-indigo-200 mt-0.5">{subtitle}</p>}
           </div>

@@ -26,7 +26,11 @@ export default function S_Home() {
       <div className="bg-indigo-700 text-white pt-12 pb-8 px-5 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-[0.2em]">PaisaDost</p>
+            <img
+              src="https://rzktrracmsxiwhryfxrw.supabase.co/storage/v1/object/public/photos/LOGO.png"
+              alt="PaisaDost"
+              className="h-8 w-auto object-contain mb-1"
+            />
             <h1 className="text-2xl font-extrabold mt-0.5 leading-tight">Aaj Kya Karein?</h1>
           </div>
           {salesman && (
