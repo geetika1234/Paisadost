@@ -9,10 +9,13 @@ import S7_Offer           from './screens/S7_Offer'
 import S_SalesAssistant   from './screens/S_SalesAssistant'
 import S_PainDiscovery    from './screens/S_PainDiscovery'
 import S_CustomerForm     from './screens/S_CustomerForm'
-import S_SavedCustomers  from './screens/S_SavedCustomers'
-import S_Dashboard       from './screens/S_Dashboard'
+import S_SavedCustomers   from './screens/S_SavedCustomers'
+import S_Dashboard        from './screens/S_Dashboard'
+import S_QuickCreate      from './screens/S_QuickCreate'
+import S_Home             from './screens/S_Home'
+import S_Workspace        from './screens/S_Workspace'
 
-const SCREENS = [
+const ROI_SCREENS = [
   S1_BusinessDetails,
   S2_Problems,
   S3_COD,
@@ -22,37 +25,33 @@ const SCREENS = [
   S7_Offer,
 ]
 
-function AppInner() {
-  const { screen, assistantOpen, openAssistant, painDiscoveryOpen, customerFormOpen, savedCustomersOpen, dashboardOpen, openDashboard } = useApp()
-  const Screen = SCREENS[screen] ?? S7_Offer
+function ROIFlow() {
+  const { screen, setMainScreen } = useApp()
+  const Screen = ROI_SCREENS[screen] ?? S7_Offer
+  return <Screen key={screen} onBackToWorkspace={() => setMainScreen('workspace')} />
+}
 
+function AppInner() {
+  const {
+    mainScreen,
+    screen, assistantOpen, openAssistant,
+    painDiscoveryOpen, customerFormOpen, savedCustomersOpen,
+    dashboardOpen, openDashboard,
+    quickCreateOpen,
+  } = useApp()
+
+  // Modals/overlays take priority over main screen
+  if (quickCreateOpen)    return <S_QuickCreate />
   if (dashboardOpen)      return <S_Dashboard />
   if (savedCustomersOpen) return <S_SavedCustomers />
   if (assistantOpen)      return <S_SalesAssistant />
   if (painDiscoveryOpen)  return <S_PainDiscovery />
   if (customerFormOpen)   return <S_CustomerForm />
 
-  return (
-    <>
-      <Screen key={screen} />
-      <button
-        onClick={openAssistant}
-        className="fixed bottom-24 right-4 z-50 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center text-2xl active:scale-90 transition-all"
-        style={{ width: 52, height: 52 }}
-        title="Sales Assistant"
-      >
-        🤖
-      </button>
-      <button
-        onClick={openDashboard}
-        className="fixed bottom-24 left-4 z-50 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center text-2xl active:scale-90 transition-all"
-        style={{ width: 52, height: 52 }}
-        title="Dashboard"
-      >
-        📊
-      </button>
-    </>
-  )
+  // Main screen routing
+  if (mainScreen === 'roi')       return <ROIFlow />
+  if (mainScreen === 'workspace') return <S_Workspace />
+  return <S_Home />
 }
 
 export default function App() {

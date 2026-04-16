@@ -71,7 +71,7 @@ export async function getDashboardStats(salesman) {
 export async function getVisitedCustomers(salesman) {
   const todayStart = startOfToday()
 
-  const [visitsRes, loginsRes] = await Promise.all([
+  const [visitsRes, loginsRes, responsesRes] = await Promise.all([
     supabase
       .from('events')
       .select(`
@@ -79,7 +79,7 @@ export async function getVisitedCustomers(salesman) {
         data,
         created_at,
         customers (
-          customer_id, name, mobile, shop_name, owner_name, area, landmark
+          customer_id, name, mobile, shop_name, owner_name, area, landmark, stage
         )
       `)
       .eq('salesman_id', salesman)
@@ -92,24 +92,70 @@ export async function getVisitedCustomers(salesman) {
       .eq('salesman_id', salesman)
       .eq('event_type', 'login_started')
       .gte('created_at', todayStart),
+
+    supabase
+      .from('events')
+      .select('customer_id, data, created_at')
+      .eq('event_type', 'customer_response')
+      .order('created_at', { ascending: false }),
   ])
 
   if (visitsRes.error) throw visitsRes.error
 
+  // Build map: customerId → latest response string
+  const responseMap = {}
+  for (const e of (responsesRes.data || [])) {
+    if (e.customer_id && !responseMap[e.customer_id]) {
+      responseMap[e.customer_id] = e.data?.response || null
+    }
+  }
+
   const loggedIn = new Set((loginsRes.data || []).map(e => e.customer_id))
 
-  return (visitsRes.data || []).map(e => {
-    const d = e.data || {}
+  // Deduplicate: one row per customer — keep only the latest visit_done event
+  const seen = new Set()
+  const deduped = (visitsRes.data || []).filter(e => {
+    const cid = e.customers?.customer_id
+    if (!cid || seen.has(cid)) return false
+    seen.add(cid)
+    return true
+  })
+
+  // Batch-fetch latest pain + ROI events for all customers in 2 queries
+  const customerIds = deduped.map(e => e.customers?.customer_id).filter(Boolean)
+  const [painEventsRes, roiEventsRes] = customerIds.length > 0
+    ? await Promise.all([
+        supabase.from('events').select('customer_id, data').in('customer_id', customerIds).eq('event_type', 'pain_identified').order('created_at', { ascending: false }),
+        supabase.from('events').select('customer_id, data').in('customer_id', customerIds).eq('event_type', 'roi_shown').order('created_at', { ascending: false }),
+      ])
+    : [{ data: [] }, { data: [] }]
+
+  const painMap = {}
+  for (const e of (painEventsRes.data || [])) {
+    if (e.customer_id && !painMap[e.customer_id]) painMap[e.customer_id] = e.data
+  }
+  const roiMap = {}
+  for (const e of (roiEventsRes.data || [])) {
+    if (e.customer_id && !roiMap[e.customer_id]) roiMap[e.customer_id] = e.data
+  }
+
+  return deduped.map(e => {
+    const d   = e.data || {}
+    const cid = e.customers?.customer_id
     return {
       id:         e.event_id,                                     // visit event_id — used for file login
-      customerId: e.customers?.customer_id,
+      customerId: cid,
+      painData:   painMap[cid] || null,
+      roiData:    roiMap[cid]  || null,
       shopName:   e.customers?.shop_name  || d.shopName  || 'Unknown',
       ownerName:  e.customers?.owner_name || d.ownerName || '',
       mobile:     e.customers?.mobile     || d.mobile    || '',
       city:       e.customers?.area       || d.city      || '',
       market:     e.customers?.landmark   || d.market    || '',
+      stage:      e.customers?.stage     || 'visited',
       visitedAt:  e.created_at,
-      fileLogin:  loggedIn.has(e.customers?.customer_id),
+      fileLogin:  loggedIn.has(cid),
+      response:   responseMap[cid] || null,
       // Full event data — arrays are stored as JSON arrays in Supabase JSONB,
       // returned as native JS arrays. Safe to use directly.
       bizTypes:         Array.isArray(d.bizTypes)   ? d.bizTypes   : [],
@@ -129,6 +175,70 @@ export async function getVisitedCustomers(salesman) {
       photoUrls:          Array.isArray(d.photoUrls) ? d.photoUrls : [],
     }
   })
+}
+
+// ── Fetch latest ROI event for a customer ────────────────────────────────────
+
+/**
+ * getLatestROIEvent(customerId)
+ * Returns the full inputs payload from the most recent roi_shown event, or null.
+ */
+export async function getLatestROIEvent(customerId) {
+  const { data, error } = await supabase
+    .from('events')
+    .select('data')
+    .eq('customer_id', customerId)
+    .eq('event_type', 'roi_shown')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data?.data || null
+}
+
+// ── Fetch latest response event for a customer ───────────────────────────────
+
+export async function getLatestResponseEvent(customerId) {
+  const { data, error } = await supabase
+    .from('events')
+    .select('data')
+    .eq('customer_id', customerId)
+    .eq('event_type', 'customer_response')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data?.data?.response || null
+}
+
+// ── Fetch latest pain event for a customer ────────────────────────────────────
+
+/**
+ * getLatestPainEvent(customerId)
+ * Returns the data payload from the most recent pain_identified event,
+ * or null if no such event exists.
+ */
+export async function getLatestPainEvent(customerId) {
+  const { data, error } = await supabase
+    .from('events')
+    .select('data')
+    .eq('customer_id', customerId)
+    .eq('event_type', 'pain_identified')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data?.data || null
+}
+
+// ── Save customer response ────────────────────────────────────────────────────
+
+/**
+ * saveCustomerResponse(customerId, response, salesman)
+ * Stores a customer_response event: 'interested' | 'thinking' | 'not_interested'
+ */
+export async function saveCustomerResponse(customerId, response, salesman) {
+  await addEvent(customerId, 'customer_response', { response }, salesman)
 }
 
 // ── Save visit ────────────────────────────────────────────────────────────────

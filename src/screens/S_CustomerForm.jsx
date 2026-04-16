@@ -211,10 +211,11 @@ const arr = v => Array.isArray(v) ? v : []
 const MIN_PHOTOS = 3
 
 export default function S_CustomerForm() {
-  const { closeCustomerForm, setCustomerId, update, customerFormInitialData } = useApp()
+  const { closeCustomerForm, activateCustomer, update, customerFormInitialData, activeCustomer, inputs } = useApp()
   const [salesmanName, setSalesmanName] = useState(() => getCurrentUser())
   const [step, setStep]           = useState(0)
   const [data, setData]           = useState(() => {
+    // Priority: edit data (full) > activeCustomer (basic step-0 only) > empty
     if (customerFormInitialData) {
       const d = customerFormInitialData
       return {
@@ -239,6 +240,20 @@ export default function S_CustomerForm() {
         decisionDelay:       d.decisionDelay       || '',
         mindset:             d.mindset             || [],
         mindsetOther:        d.mindsetOther        || '',
+        // Show previously saved photos (Supabase URLs used directly as img src)
+        photos:              Array.isArray(d.photoUrls) ? d.photoUrls : [],
+      }
+    }
+    // No edit data but active customer exists — pre-fill identity fields
+    if (activeCustomer?.id) {
+      return {
+        ...EMPTY,
+        capturedAt: new Date(),
+        shopName:   activeCustomer.shopName  || '',
+        ownerName:  activeCustomer.ownerName || '',
+        city:       activeCustomer.city      || '',
+        market:     activeCustomer.market    || '',
+        mobile:     activeCustomer.mobile    || '',
       }
     }
     return { ...EMPTY, capturedAt: new Date() }
@@ -309,14 +324,15 @@ export default function S_CustomerForm() {
     setSubmitting(true)
     setSubmitError(null)
     try {
-      const isEdit = !!customerFormInitialData
-      let cid
+      // Resolve customer_id: edit data > active customer > create new
+      const existingCustomerId = customerFormInitialData?.customerId || activeCustomer?.id || null
+      // Resolve event_id: edit data event > active customer's quick-create event > none
+      const existingEventId    = customerFormInitialData?.id || activeCustomer?.visitEventId || null
 
-      if (isEdit) {
-        // Edit mode — reuse existing customer_id, update the existing event in-place
-        cid = customerFormInitialData.customerId
+      let cid
+      if (existingCustomerId) {
+        cid = existingCustomerId
       } else {
-        // New lead — upsert customer record, get customer_id
         const customer = await saveCustomer({
           name:       data.ownerName || data.shopName,
           mobile:     data.mobile    || null,
@@ -329,8 +345,8 @@ export default function S_CustomerForm() {
         cid = customer.customer_id
       }
 
-      // Upload any new photos to Supabase Storage, collect public URLs
-      let photoUrls = isEdit ? (customerFormInitialData.photoUrls || []) : []
+      // Upload any new photos, carry over existing ones
+      let photoUrls = customerFormInitialData?.photoUrls || []
       if (photoFiles.length > 0) {
         const results = await Promise.allSettled(photoFiles.map(f => uploadPhoto(f, cid)))
         const failed = results.filter(r => r.status === 'rejected')
@@ -341,18 +357,55 @@ export default function S_CustomerForm() {
         photoUrls = [...photoUrls, ...results.map(r => r.value)]
       }
 
-      // Build formData: strip local-only fields, add public photo URLs
       const { photos: _blobs, capturedAt: _ts, ...formData } = data
 
-      if (isEdit) {
-        // Update the existing visit_done event in-place — no new row created
-        await updateEventData(customerFormInitialData.id, { ...formData, photoUrls })
+      let visitEventId
+      if (existingEventId) {
+        // Update the existing visit_done event in-place — one event per customer
+        await updateEventData(existingEventId, { ...formData, photoUrls })
+        visitEventId = existingEventId
       } else {
-        await addEvent(cid, 'visit_done', { ...formData, photoUrls }, salesmanName)
+        const event = await addEvent(cid, 'visit_done', { ...formData, photoUrls }, salesmanName)
+        visitEventId = event.event_id
       }
 
-      // Share customer_id and sync bizTypes to AppContext so ROI tool auto-fills
-      setCustomerId(cid)
+      // Preserve stage/painFilled/painData if pain discovery was already done
+      const STAGE_ORDER = ['visited', 'pain_identified', 'roi_shown', 'login_started', 'approved', 'disbursed']
+      const existingStageRank = STAGE_ORDER.indexOf(activeCustomer?.stage || 'visited')
+      const preservedStage = existingStageRank > 0 ? activeCustomer.stage : 'visited'
+
+      activateCustomer({
+        id:                  cid,
+        visitEventId:        visitEventId,
+        shopName:            data.shopName,
+        ownerName:           data.ownerName,
+        mobile:              data.mobile,
+        city:                data.city,
+        market:              data.market,
+        stage:               preservedStage,
+        // Store full engagement data so workspace can pre-fill on reopen
+        bizTypes:            data.bizTypes,
+        bizTypeOther:        data.bizTypeOther,
+        seasons:             data.seasons,
+        seasonOther:         data.seasonOther,
+        peakMonths:          data.peakMonths,
+        offSeasonSales:      data.offSeasonSales,
+        offSeasonSalesOther: data.offSeasonSalesOther,
+        investmentTiming:    data.investmentTiming,
+        prepTime:            data.prepTime,
+        prepTimeOther:       data.prepTimeOther,
+        problems:            data.problems,
+        decisionDelay:       data.decisionDelay,
+        mindset:             data.mindset,
+        mindsetOther:        data.mindsetOther,
+        photoUrls:           photoUrls,
+        engagementFilled:    true,
+        // Preserve pain discovery data if already filled
+        painFilled:          activeCustomer?.painFilled  || false,
+        painData:            activeCustomer?.painData    || null,
+        // Preserve ROI inputs so the form doesn't go blank after engagement form submit
+        savedROIInputs:      inputs,
+      })
       update('bizTypes', data.bizTypes)
       update('bizTypeOther', data.bizTypeOther)
       update('businessType', data.bizTypes.filter(v => v !== '__other__')[0] || '')
@@ -447,11 +500,13 @@ export default function S_CustomerForm() {
       <div className="bg-indigo-700 text-white pt-12 pb-4 px-5 flex-shrink-0">
         <div className="flex items-center justify-between mb-1">
           <div>
-            <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">
-              Customer Engagement{customerFormInitialData ? ' · ✏️ Edit' : ''}
-            </p>
+            <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">Customer Engagement</p>
             <h1 className="text-xl font-extrabold leading-tight">{STEPS[step].icon} {STEPS[step].label}</h1>
-            <p className="text-xs text-indigo-300 mt-0.5">🕐 {fmtDateTime(data.capturedAt)}</p>
+            {(activeCustomer?.shopName || data.shopName) && (
+              <p className="text-xs text-indigo-200 font-semibold mt-0.5 truncate">
+                🏪 {activeCustomer?.shopName || data.shopName}
+              </p>
+            )}
           </div>
           <button onClick={closeCustomerForm} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-lg">×</button>
         </div>

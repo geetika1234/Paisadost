@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
+import { getLatestROIEvent } from '../lib/db/dashboard'
 import ScreenShell from '../components/ScreenShell'
 import RangeSlider from '../components/RangeSlider'
 import LoanCustomizeCard from '../components/LoanCustomizeCard'
@@ -97,9 +98,18 @@ function NumberInput({ label, value, onChange, suffix = '' }) {
 }
 
 export default function S1_BusinessDetails() {
-  const { inputs, update, next, screen, reset, saveCurrentCustomer, saving, openSavedCustomers } = useApp()
-  const [confirmReset, setConfirmReset] = useState(false)
+  const { inputs, update, next, screen, saveCurrentCustomer, saving, saveError, setMainScreen, activeCustomer, setInputs } = useApp()
   const [saved, setSaved] = useState(false)
+
+  // On mount: if this customer has saved ROI data but inputs are blank, fetch from Supabase
+  useEffect(() => {
+    if (!activeCustomer?.roiFilled) return
+    if (inputs.monthlySales > 0) return   // already populated — skip fetch
+    getLatestROIEvent(activeCustomer.id).then(ev => {
+      if (!ev) return
+      setInputs(prev => ({ ...prev, ...ev }))
+    }).catch(() => {})
+  }, [activeCustomer?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSave() {
     try {
@@ -136,76 +146,17 @@ export default function S1_BusinessDetails() {
       subtitle="Sab sections bharo — accurate result aayega"
       step={screen}
       total={7}
+      onBack={() => setMainScreen('workspace')}
+      secondaryCta={saving ? 'Saving...' : saved ? '✓ Saved!' : '💾 Save Karen'}
+      onSecondaryCta={handleSave}
+      secondaryCtaDisabled={saving}
       cta="Nuksaan Dekhte Hain →"
       onCta={next}
     >
 
-      {/* ── Customer identity + actions ── */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm mb-3 px-4 py-3 space-y-3">
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <p className="text-xs font-semibold text-slate-500 mb-1">👤 Customer Ka Naam</p>
-            <input
-              type="text"
-              value={inputs.customerName}
-              onChange={e => update('customerName', e.target.value.replace(/[0-9]/g, ''))}
-              placeholder="Naam likho..."
-              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-400"
-            />
-          </div>
-          <div className="w-36">
-            <p className="text-xs font-semibold text-slate-500 mb-1">📞 Mobile</p>
-            <input
-              type="tel"
-              value={inputs.customerMobile}
-              onChange={e => update('customerMobile', e.target.value.replace(/\D/g, '').slice(0, 10))}
-              placeholder="10 digit"
-              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-400"
-            />
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-bold text-white text-center active:scale-95 transition-all disabled:opacity-60 ${saved ? 'bg-green-500' : 'bg-indigo-600'}`}
-          >
-            {saving ? 'Saving...' : saved ? '✓ Saved!' : '💾 Save Karen'}
-          </button>
-          <button
-            onClick={openSavedCustomers}
-            className="flex-1 py-2.5 rounded-xl text-xs font-bold border-2 border-indigo-200 text-indigo-600 text-center active:scale-95 transition-all"
-          >
-            📂 Saved Customers
-          </button>
-        </div>
-      </div>
-
-      {/* ── Reset banner ── */}
-      {!confirmReset ? (
-        <button
-          onClick={() => setConfirmReset(true)}
-          className="w-full mb-4 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-slate-300 text-slate-500 text-xs font-semibold active:scale-95 transition-all"
-        >
-          🔄 Naya Customer — Saari Details Reset Karein
-        </button>
-      ) : (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex flex-col gap-2">
-          <p className="text-xs font-bold text-green-700">Pakka reset karna hai? Saara data clear ho jayega.</p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => { reset(); setOpen(INITIAL_OPEN); setConfirmReset(false) }}
-              className="flex-1 py-2 bg-green-500 text-white text-xs font-bold rounded-lg active:scale-95 transition-all"
-            >
-              Haan, Reset Karo
-            </button>
-            <button
-              onClick={() => setConfirmReset(false)}
-              className="flex-1 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg active:scale-95 transition-all"
-            >
-              Nahi, Ruk Jao
-            </button>
-          </div>
+      {saveError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 mb-3">
+          <p className="text-xs text-red-600 font-semibold">{saveError}</p>
         </div>
       )}
 

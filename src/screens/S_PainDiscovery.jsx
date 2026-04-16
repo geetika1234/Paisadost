@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { PROBLEMS } from '../logic/problems'
 import { addEvent } from '../lib/db/events'
@@ -184,20 +184,34 @@ const QUESTIONS = [
 // ── Main screen ──────────────────────────────────────────────────────────────
 
 export default function S_PainDiscovery() {
-  const { closePainDiscovery, toggleProblem, toggleSubProblem, update, inputs, customerId } = useApp()
+  const { closePainDiscovery, toggleProblem, toggleSubProblem, update, inputs, customerId, activeCustomer, openQuickCreate, updateActiveCustomer } = useApp()
+
+  // Pre-fill from previously saved pain data (stored in activeCustomer after each save)
+  const _pain = activeCustomer?.painData || {}
+
   const [checked, setChecked]         = useState(new Set())
   const [expandedTag, setExpandedTag] = useState(null)
-  const [q1Other,      setQ1Other]      = useState('')
-  const [notesByQ,     setNotesByQ]     = useState({})
-  const [problemYears, setProblemYears] = useState('')
-  const [problemMonths,setProblemMonths]= useState('')
-  const [priority,     setPriority]     = useState('')
-  const [capitalNeeded,setCapitalNeeded]= useState('')
-  const [dailyLoss,    setDailyLoss]    = useState('')
-  const [monthlyLoss,  setMonthlyLoss]  = useState('')
+  const [q1Other,      setQ1Other]      = useState(_pain.q1Other      || '')
+  const [notesByQ,     setNotesByQ]     = useState(_pain.notesByQ     || {})
+  const [problemYears, setProblemYears] = useState(_pain.problemYears || '')
+  const [problemMonths,setProblemMonths]= useState(_pain.problemMonths|| '')
+  const [priority,     setPriority]     = useState(_pain.priority     || '')
+  const [capitalNeeded,setCapitalNeeded]= useState(_pain.capitalNeeded|| '')
+  const [dailyLoss,    setDailyLoss]    = useState(_pain.dailyLoss    ? String(_pain.dailyLoss)    : '')
+  const [monthlyLoss,  setMonthlyLoss]  = useState(_pain.monthlyLoss  ? String(_pain.monthlyLoss)  : '')
   const [saving,       setSaving]       = useState(false)
   const [saveError,    setSaveError]    = useState(null)
   const [saved,        setSaved]        = useState(false)
+
+  // Restore Q1 (problems) and Q3 (subProblems) from saved painData into global inputs
+  useEffect(() => {
+    if (_pain.primaryProblem) {
+      update('problems', [_pain.primaryProblem])
+    }
+    if (Array.isArray(_pain.subProblems) && _pain.subProblems.length > 0) {
+      update('subProblems', _pain.subProblems)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function setNote(num, val) {
     setNotesByQ(prev => ({ ...prev, [num]: val }))
@@ -232,7 +246,28 @@ export default function S_PainDiscovery() {
         monthlyLoss:     monthlyLoss ? Number(monthlyLoss) : null,
         notesByQuestion: notesByQ,
       }, getCurrentUser())
+      // Persist answers in activeCustomer — never downgrade stage if already higher
+      const STAGE_ORDER = ['visited', 'pain_identified', 'roi_shown', 'login_started', 'approved', 'disbursed']
+      const currentRank = STAGE_ORDER.indexOf(activeCustomer?.stage || 'visited')
+      const preservedStage = currentRank > STAGE_ORDER.indexOf('pain_identified')
+        ? activeCustomer.stage
+        : 'pain_identified'
+
+      updateActiveCustomer({
+        stage:     preservedStage,
+        painFilled: true,
+        painData: {
+          primaryProblem: inputs.problems[0]  || null,
+          subProblems:    inputs.subProblems  || [],
+          q1Other, notesByQ,
+          problemYears, problemMonths,
+          priority, capitalNeeded,
+          dailyLoss:   dailyLoss   ? Number(dailyLoss)   : null,
+          monthlyLoss: monthlyLoss ? Number(monthlyLoss) : null,
+        },
+      })
       setSaved(true)
+      setTimeout(() => closePainDiscovery(), 1500)
     } catch (err) {
       setSaveError(err.message || 'Save failed. Please try again.')
     } finally {
@@ -242,6 +277,31 @@ export default function S_PainDiscovery() {
 
   const totalDone = checked.size + (inputs.problems.length > 0 ? 1 : 0)
 
+  if (!customerId) {
+    return (
+      <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
+        <div className="bg-indigo-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">PaisaDost</p>
+            <h1 className="text-lg font-extrabold leading-tight">🔍 Pain Discovery</h1>
+          </div>
+          <button onClick={closePainDiscovery} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-lg">×</button>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20 gap-4">
+          <span className="text-5xl">🏪</span>
+          <h2 className="text-lg font-extrabold text-slate-800 text-center">Pehle Customer Select Karein</h2>
+          <p className="text-sm text-slate-500 text-center leading-relaxed">Pain Discovery karne se pehle ek active customer hona zaroori hai</p>
+          <button
+            onClick={() => { closePainDiscovery(); openQuickCreate() }}
+            className="w-full max-w-xs py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all"
+          >
+            🏪 Customer Banao →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
 
@@ -250,6 +310,7 @@ export default function S_PainDiscovery() {
         <div>
           <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">PaisaDost</p>
           <h1 className="text-lg font-extrabold leading-tight">🔍 Pain Discovery</h1>
+          <p className="text-xs text-indigo-200 font-semibold truncate mt-0.5">🏪 {activeCustomer?.shopName || ''}</p>
           <p className="text-xs text-indigo-300 mt-0.5">{totalDone} / {QUESTIONS.length} questions done</p>
         </div>
         <button

@@ -3,11 +3,32 @@ import { useApp } from '../context/AppContext'
 import {
   getCurrentUser, setCurrentUser,
   getDashboardStats, getVisitedCustomers, markCustomerFileLogin,
+  saveCustomerResponse,
 } from '../lib/db/dashboard'
+import { PROBLEMS } from '../logic/problems'
+import { calcEMI, calculateCOD, calculateROI } from '../logic/calculations'
+
+// Flat tag → label map for all sub-problems
+const SUB_LABEL = {}
+PROBLEMS.forEach(p => {
+  p.subProblems.forEach(sp => { SUB_LABEL[sp.tag] = sp.label })
+})
 
 const DAILY_TARGET   = 20
 const MONTHLY_TARGET = 400
 const LOGIN_TARGET   = 40
+
+const STAGE_LABEL = {
+  visited:         { label: 'Visited'     },
+  pain_identified: { label: 'Pain Done'   },
+  roi_shown:       { label: 'ROI Shown'   },
+  login_started:   { label: 'Login Done'  },
+  approved:        { label: 'Approved'    },
+  disbursed:       { label: 'Disbursed'   },
+}
+
+// Stages where ROI has been shown
+const ROI_STAGES = new Set(['roi_shown', 'login_started', 'approved', 'disbursed'])
 
 // ── Group customers by visit date ─────────────────────────────────────────────
 function groupByDate(customers) {
@@ -99,64 +120,145 @@ function LoginView({ onLogin, onClose }) {
   )
 }
 
+// ── Insight item — compact label+value row ────────────────────────────────────
+function InsightItem({ label, value, valueClass = 'text-slate-700', className = '' }) {
+  if (!value) return null
+  return (
+    <div className={`flex items-start gap-1 ${className}`}>
+      <span className="text-[10px] font-bold text-slate-400 flex-shrink-0 pt-0.5 w-14">{label}</span>
+      <span className={`text-[11px] font-semibold leading-tight flex-1 ${valueClass}`}>{value}</span>
+    </div>
+  )
+}
+
+// ── Intent derivation (system-only, no manual override) ──────────────────────
+
+function deriveIntent({ response, urgency, capitalNeeded, problemYears, problemMonths, businessFocus, hasProblem }) {
+  if (response === 'not_interested') return { level: 'low',    label: '❄️ Low'    }
+
+  // Base
+  let level
+  if (response === 'interested' && urgency === 'abhi' && capitalNeeded === 'haan') {
+    level = 'high'
+  } else if (response === 'thinking' || hasProblem) {
+    level = 'medium'
+  } else {
+    level = 'low'
+  }
+
+  // Boosters — only upgrade from medium, cap at high
+  if (level === 'medium') {
+    const totalMonths = (parseInt(problemYears) || 0) * 12 + (parseInt(problemMonths) || 0)
+    if (totalMonths > 12) {
+      level = 'high'
+    } else if (businessFocus && businessFocus.includes('आगे बढ़ाना')) {
+      level = 'high'
+    }
+  }
+
+  return level === 'high'
+    ? { level: 'high',   label: '🔥 High'   }
+    : level === 'medium'
+    ? { level: 'medium', label: '🟡 Medium' }
+    : { level: 'low',    label: '❄️ Low'    }
+}
+
 // ── Customer visit row ────────────────────────────────────────────────────────
 
-function CustomerRow({ customer, onFileLogin, onEdit }) {
-  const [expanded, setExpanded] = useState(false)
+function CustomerRow({ customer, onFileLogin, onSetActive, salesman }) {
+  const painData = customer.painData || null
+  const roiData  = customer.roiData  || null
+  const [response, setResponse] = useState(customer.response || null)
+  const [saving,   setSaving]   = useState(false)
+
   const time = new Date(customer.visitedAt).toLocaleTimeString('en-IN', {
     hour: '2-digit', minute: '2-digit', hour12: true,
   })
 
-  const visibleBizTypes = (customer.bizTypes || []).filter(v => v !== '__other__')
-  const hasDetails = visibleBizTypes.length > 0 || customer.bizTypeOther ||
-    (customer.problems || []).length > 0 || (customer.seasons || []).length > 0 ||
-    customer.offSeasonSales || customer.prepTime || (customer.photoUrls || []).length > 0
+  async function handleResponse(value) {
+    if (saving || !value) { setResponse(null); return }
+    setResponse(value)
+    setSaving(true)
+    try { await saveCustomerResponse(customer.customerId, value, salesman) } catch (_) {}
+    setSaving(false)
+  }
+
+  // ── Derived insight values ──────────────────────────────────────────────
+  const primaryProblem = painData?.primaryProblem
+    ? (PROBLEMS.find(p => p.tag === painData.primaryProblem)?.title || painData.primaryProblem)
+    : painData?.primaryOther || null
+
+  const urgency      = painData?.priority      || null
+  const capitalNeeded = painData?.capitalNeeded || null
+  const problemYears  = painData?.problemYears  || painData?.problemDuration?.years  || ''
+  const problemMonths = painData?.problemMonths || painData?.problemDuration?.months || ''
+  const businessFocus = (customer.mindset || [])[0] || null
+  const hasProblem    = !!(primaryProblem || (customer.problems || []).length > 0)
+
+  const urgencyLabel   = urgency === 'abhi' ? '⚡ Abhi' : urgency === 'baad' ? '🕐 Baad Mein' : null
+  const capitalLabel   = capitalNeeded === 'haan' ? '✅ Haan' : capitalNeeded === 'nahi' ? '❌ Nahi' : null
+  const responseLabel  = response === 'interested'    ? '🟢 Interested'
+                       : response === 'thinking'       ? '🟡 Soch Raha'
+                       : response === 'not_interested' ? '🔴 Nahi'
+                       : null
+  const stageLabel     = (STAGE_LABEL[customer.stage] || STAGE_LABEL.visited).label
+  const roiShown       = ROI_STAGES.has(customer.stage) || !!roiData
+
+  // ROI line
+  let roiLine = null
+  if (roiData?.loanAmount > 0 && roiData?.tenureMonths > 0) {
+    try {
+      const roi = calculateROI(roiData)
+      const emi = Math.round(roi.emiAmount)
+      const gain = Math.round(roi.totalMonthlyGain)
+      const fmtN = n => n >= 100000 ? `₹${(n/100000).toFixed(1)}L` : `₹${(n/1000).toFixed(0)}K`
+      if (gain > 0) roiLine = `+${fmtN(gain)}/mo | EMI ${fmtN(emi)}`
+    } catch (_) {}
+  }
+
+  // Intent
+  const intent = deriveIntent({ response, urgency, capitalNeeded, problemYears, problemMonths, businessFocus, hasProblem })
+
+  // Hot Lead: ALL four conditions must be true
+  const isHot = response === 'interested' && urgency === 'abhi' && capitalNeeded === 'haan' && roiShown
 
   return (
-    <div className={`bg-white rounded-2xl border mb-2.5 overflow-hidden
-      ${customer.fileLogin ? 'border-green-200 bg-green-50/30' : 'border-slate-200'}`}>
+    <div className={`rounded-2xl border mb-3 overflow-hidden shadow-sm
+      ${isHot         ? 'border-orange-300 bg-orange-50/20'
+      : customer.fileLogin ? 'border-green-200 bg-green-50/20'
+      :                      'border-slate-200 bg-white'}`}>
 
-      {/* Main row */}
-      <div className="px-4 py-3 flex items-center gap-3">
+      {/* 🔥 Hot Lead badge */}
+      {isHot && (
+        <div className="bg-orange-500 px-4 py-1.5 flex items-center gap-2">
+          <span className="text-sm">🔥</span>
+          <span className="text-xs font-extrabold text-white uppercase tracking-widest">Hot Lead — Abhi Action Lo!</span>
+        </div>
+      )}
+
+      {/* Identity row */}
+      <div className="px-4 pt-3 pb-2 flex items-center gap-3">
         <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-extrabold
-          ${customer.fileLogin ? 'bg-green-100 text-green-700' : 'bg-indigo-50 text-indigo-600'}`}>
+          ${isHot ? 'bg-orange-100 text-orange-600' : customer.fileLogin ? 'bg-green-100 text-green-700' : 'bg-indigo-50 text-indigo-600'}`}>
           {customer.shopName.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-extrabold text-slate-800 truncate">{customer.shopName}</p>
-          <p className="text-xs text-slate-400 truncate">
-            {customer.ownerName}
-            {customer.city   ? ` · ${customer.city}`   : ''}
-            {customer.market ? ` · ${customer.market}` : ''}
+          <p className="text-xs text-slate-500 truncate">
+            {customer.ownerName}{customer.city ? ` · ${customer.city}` : ''}{customer.market ? ` · ${customer.market}` : ''}
           </p>
-          <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-[10px] text-slate-400">🕐 {time}</p>
-            {customer.mobile ? <p className="text-[10px] text-slate-400">📞 {customer.mobile}</p> : null}
-            {hasDetails && (
-              <button onClick={() => setExpanded(e => !e)} className="text-[10px] font-bold text-indigo-500">
-                {expanded ? '▲ Less' : '▼ Details'}
-              </button>
-            )}
-          </div>
+          {customer.mobile && <p className="text-[10px] text-slate-400 mt-0.5">📞 {customer.mobile}</p>}
         </div>
-        <div className="flex-shrink-0 flex flex-col gap-1.5 items-end">
-          {!customer.fileLogin && (
-            <button
-              onClick={() => onEdit(customer)}
-              className="text-[10px] font-bold text-slate-400 border border-slate-200 rounded-lg px-2 py-1 active:scale-95 transition-all"
-            >
-              ✏️ Edit
-            </button>
-          )}
+        <div className="flex-shrink-0">
           {customer.fileLogin ? (
             <div className="flex items-center gap-1 bg-green-100 border border-green-200 rounded-xl px-2.5 py-1.5">
               <span className="text-xs">✅</span>
-              <span className="text-xs font-bold text-green-700">Done</span>
+              <span className="text-xs font-bold text-green-700">Login Done</span>
             </div>
           ) : (
             <button
               onClick={() => onFileLogin(customer.id)}
-              className="bg-indigo-600 text-white text-xs font-bold rounded-xl px-3 py-2 active:scale-95 transition-all shadow-sm shadow-indigo-200 whitespace-nowrap"
+              className="bg-indigo-600 text-white text-xs font-bold rounded-xl px-3 py-2 active:scale-95 transition-all shadow-sm shadow-indigo-200"
             >
               File Login
             </button>
@@ -164,77 +266,43 @@ function CustomerRow({ customer, onFileLogin, onEdit }) {
         </div>
       </div>
 
-      {/* Expandable detail panel — reads arrays from event.data */}
-      {expanded && hasDetails && (
-        <div className="border-t border-slate-100 px-4 py-3 space-y-1.5 bg-slate-50">
-          {(visibleBizTypes.length > 0 || customer.bizTypeOther) && (
-            <p className="text-xs text-slate-600">
-              <span className="font-bold text-slate-700">Business: </span>
-              {[...visibleBizTypes, customer.bizTypeOther].filter(Boolean).join(', ')}
-            </p>
-          )}
-          {(customer.seasons || []).length > 0 && (
-            <p className="text-xs text-slate-600">
-              <span className="font-bold text-slate-700">Season: </span>
-              {customer.seasons.join(', ')}
-              {customer.seasonOther ? `, ${customer.seasonOther}` : ''}
-            </p>
-          )}
-          {(customer.peakMonths || []).length > 0 && (
-            <p className="text-xs text-slate-600">
-              <span className="font-bold text-slate-700">Peak Months: </span>
-              {customer.peakMonths.join(', ')}
-            </p>
-          )}
-          {customer.offSeasonSales && (
-            <p className="text-xs text-slate-600">
-              <span className="font-bold text-slate-700">Off Season Sales: </span>
-              {customer.offSeasonSales === 'other' ? customer.offSeasonSalesOther : customer.offSeasonSales}
-            </p>
-          )}
-          {customer.investmentTiming && (
-            <p className="text-xs text-slate-600">
-              <span className="font-bold text-slate-700">Investment Timing: </span>
-              {customer.investmentTiming}
-            </p>
-          )}
-          {customer.prepTime && (
-            <p className="text-xs text-slate-600">
-              <span className="font-bold text-slate-700">Prep Time: </span>
-              {customer.prepTime === 'other' ? customer.prepTimeOther : customer.prepTime}
-            </p>
-          )}
-          {(customer.problems || []).length > 0 && (
-            <p className="text-xs text-slate-600">
-              <span className="font-bold text-slate-700">Problems: </span>
-              {customer.problems.join(', ')}
-            </p>
-          )}
-          {customer.decisionDelay && (
-            <p className="text-xs text-slate-600">
-              <span className="font-bold text-slate-700">Decision Delay: </span>
-              {customer.decisionDelay}
-            </p>
-          )}
-          {(customer.mindset || []).length > 0 && (
-            <p className="text-xs text-slate-600">
-              <span className="font-bold text-slate-700">Mindset: </span>
-              {customer.mindset.join(', ')}
-              {customer.mindsetOther ? `, ${customer.mindsetOther}` : ''}
-            </p>
-          )}
-          {(customer.photoUrls || []).length > 0 && (
-            <div>
-              <p className="text-xs font-bold text-slate-700 mb-1.5">Photos:</p>
-              <div className="grid grid-cols-3 gap-1.5">
-                {customer.photoUrls.map((url, i) => (
-                  <img key={i} src={url} alt="" className="w-full aspect-square object-cover rounded-lg" />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Key Insights — 7 points, always visible */}
+      <div className="mx-3 mb-2 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5">
+        <InsightItem label="Problem"  value={primaryProblem} className="col-span-2" />
+        <InsightItem label="Urgency"  value={urgencyLabel}   valueClass={urgency === 'abhi' ? 'text-red-600' : 'text-amber-600'} />
+        <InsightItem label="Stage"    value={stageLabel} />
+        <InsightItem label="Capital"  value={capitalLabel} />
+        <InsightItem label="ROI"      value={roiLine}        valueClass="text-green-700" />
+        <InsightItem label="Response" value={responseLabel} />
+        <InsightItem label="Intent"   value={intent.label}   valueClass={intent.level === 'high' ? 'text-orange-600 font-extrabold' : intent.level === 'medium' ? 'text-amber-600' : 'text-slate-400'} />
+      </div>
+
+      {/* Response + Details */}
+      <div className="border-t border-slate-100 px-3 py-2 flex items-center gap-2">
+        <select
+          value={response || ''}
+          onChange={e => handleResponse(e.target.value || null)}
+          disabled={saving}
+          className={`flex-1 text-xs font-bold rounded-lg border px-2 py-1.5 outline-none appearance-none
+            ${response === 'interested'     ? 'bg-green-50 border-green-300 text-green-700'
+            : response === 'thinking'        ? 'bg-amber-50 border-amber-300 text-amber-700'
+            : response === 'not_interested'  ? 'bg-red-50 border-red-300 text-red-600'
+            :                                  'bg-white border-slate-200 text-slate-400'}`}
+        >
+          <option value=''>Response — Select</option>
+          <option value='interested'>🟢 Interested</option>
+          <option value='thinking'>🟡 Soch Raha</option>
+          <option value='not_interested'>🔴 Nahi</option>
+        </select>
+        <button
+          onClick={() => onSetActive(customer)}
+          className={`px-4 py-1.5 rounded-lg text-xs font-extrabold active:scale-95 transition-all
+            ${isHot ? 'bg-orange-500 text-white shadow-sm shadow-orange-200' : 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'}`}
+        >
+          Details →
+        </button>
+      </div>
+
     </div>
   )
 }
@@ -242,11 +310,87 @@ function CustomerRow({ customer, onFileLogin, onEdit }) {
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export default function S_Dashboard() {
-  const { closeDashboard, openCustomerFormForEdit } = useApp()
+  const { closeDashboard, openCustomerFormForEdit, activateCustomer } = useApp()
 
   function handleEdit(customer) {
     closeDashboard()
     openCustomerFormForEdit(customer)
+  }
+
+  function handleSetActive(customer) {
+    const hasEngagementData = (
+      customer.bizTypes?.length > 0 ||
+      !!customer.bizTypeOther ||
+      customer.seasons?.length > 0 ||
+      customer.peakMonths?.length > 0 ||
+      !!customer.investmentTiming ||
+      !!customer.decisionDelay
+    )
+
+    // Use batch-fetched pain + ROI data already attached to customer
+    let painData = null
+    let painFilled = false
+    let savedROIInputs = null
+    let roiFilled = false
+
+    const painEv = customer.painData
+    const roiEv  = customer.roiData
+
+    if (painEv) {
+      painData = {
+        primaryProblem: painEv.primaryProblem              || null,
+        subProblems:    painEv.subProblems                 || [],
+        q1Other:        painEv.primaryOther                || '',
+        notesByQ:       painEv.notesByQuestion             || {},
+        problemYears:   painEv.problemDuration?.years      || '',
+        problemMonths:  painEv.problemDuration?.months     || '',
+        priority:       painEv.priority                    || '',
+        capitalNeeded:  painEv.capitalNeeded               || '',
+        dailyLoss:      painEv.dailyLoss    ?? null,
+        monthlyLoss:    painEv.monthlyLoss  ?? null,
+      }
+      painFilled = true
+    }
+    if (roiEv) {
+      savedROIInputs = roiEv
+      roiFilled = true
+    }
+
+    const stage = customer.stage || 'visited'
+
+    activateCustomer({
+      savedROIInputs,
+      id:                  customer.customerId,
+      visitEventId:        customer.id,          // visit event_id for engagement form updates
+      shopName:            customer.shopName,
+      ownerName:           customer.ownerName,
+      mobile:              customer.mobile,
+      city:                customer.city,
+      market:              customer.market,
+      stage,
+      // Engagement form data — pre-fills form on reopen
+      bizTypes:            customer.bizTypes            || [],
+      bizTypeOther:        customer.bizTypeOther        || '',
+      seasons:             customer.seasons             || [],
+      seasonOther:         customer.seasonOther         || '',
+      peakMonths:          customer.peakMonths          || [],
+      offSeasonSales:      customer.offSeasonSales      || '',
+      offSeasonSalesOther: customer.offSeasonSalesOther || '',
+      investmentTiming:    customer.investmentTiming    || '',
+      prepTime:            customer.prepTime            || '',
+      prepTimeOther:       customer.prepTimeOther       || '',
+      problems:            customer.problems            || [],
+      decisionDelay:       customer.decisionDelay       || '',
+      mindset:             customer.mindset             || [],
+      mindsetOther:        customer.mindsetOther        || '',
+      photoUrls:           customer.photoUrls           || [],
+      engagementFilled:    hasEngagementData,
+      roiFilled,
+      // Pain discovery data
+      painFilled,
+      painData,
+    })
+    closeDashboard()
   }
   const [user,      setUser]      = useState(() => getCurrentUser())
   const [data,      setData]      = useState({ todayVisits: 0, monthVisits: 0, fileLogin: 0 })
@@ -447,7 +591,7 @@ export default function S_Dashboard() {
                 </div>
               ) : (
                 todayCustomers.map(c => (
-                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} />
+                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} salesman={user} />
                 ))
               )}
             </div>
@@ -532,7 +676,7 @@ export default function S_Dashboard() {
                       <span className="text-[10px] text-slate-400 bg-slate-200 rounded-full px-1.5 py-0.5">{group.items.length}</span>
                     </div>
                     {group.items.map(c => (
-                      <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} />
+                      <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} salesman={user} />
                     ))}
                   </div>
                 ))
@@ -605,7 +749,7 @@ export default function S_Dashboard() {
                         <span className="text-[10px] text-slate-400 bg-slate-200 rounded-full px-1.5 py-0.5">{group.items.length}</span>
                       </div>
                       {group.items.map(c => (
-                        <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} />
+                        <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} salesman={user} />
                       ))}
                     </div>
                   ))}

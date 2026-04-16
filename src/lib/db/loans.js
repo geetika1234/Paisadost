@@ -1,5 +1,5 @@
 import { supabase } from '../supabase'
-import { saveCustomer } from './customers'
+import { saveCustomer, updateCustomer } from './customers'
 import { addEvent } from './events'
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -27,23 +27,31 @@ export async function createLoan({ customer_id, loan_amount, tenure, interest_ra
  *   2. Add roi_shown event → stores the COMPLETE inputs JSON so "Load Karen" can restore everything
  *   3. Upsert loan with the numeric loan fields
  */
-export async function saveLoan(inputs) {
-  // 1. Upsert customer identity
-  const customer = await saveCustomer({
-    name:          inputs.customerName,
-    mobile:        inputs.customerMobile,
-    business_type: inputs.businessType,
-    stage:         'roi_shown',
-  })
+export async function saveLoan(inputs, existingCustomerId = null) {
+  let customerId = existingCustomerId
+
+  if (customerId) {
+    // 1a. Known customer — just update stage, no mobile lookup needed
+    await updateCustomer(customerId, { stage: 'roi_shown' })
+  } else {
+    // 1b. No known ID — upsert by mobile (legacy / standalone flow)
+    const customer = await saveCustomer({
+      name:          inputs.customerName,
+      mobile:        inputs.customerMobile,
+      business_type: inputs.businessType,
+      stage:         'roi_shown',
+    })
+    customerId = customer.customer_id
+  }
 
   // 2. Log roi_shown event — data carries the FULL inputs so "Load Karen" works
-  await addEvent(customer.customer_id, 'roi_shown', inputs)
+  await addEvent(customerId, 'roi_shown', inputs)
 
   // 3. Upsert loan record
   const { data: existing } = await supabase
     .from('loans')
     .select('loan_id')
-    .eq('customer_id', customer.customer_id)
+    .eq('customer_id', customerId)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -59,14 +67,14 @@ export async function saveLoan(inputs) {
       .eq('loan_id', existing.loan_id)
   } else {
     await createLoan({
-      customer_id:   customer.customer_id,
+      customer_id:   customerId,
       loan_amount:   inputs.loanAmount,
       tenure:        inputs.tenureMonths,
       interest_rate: inputs.interestRate,
     })
   }
 
-  return customer
+  return { customer_id: customerId }
 }
 
 /**

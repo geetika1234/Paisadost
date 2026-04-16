@@ -88,3 +88,26 @@ export async function getCustomerFull(customerId) {
     loans:    loansRes.data   || [],
   }
 }
+
+/**
+ * updateCustomer(customerId, data)
+ * Partial update — never overwrites existing data with empty/null values.
+ * Safe to call with any subset of fields.
+ */
+export async function updateCustomer(customerId, data) {
+  const ALLOWED = ['name', 'shop_name', 'owner_name', 'mobile', 'area', 'landmark', 'business_type', 'intent_level', 'stage']
+  const payload = {}
+  for (const key of ALLOWED) {
+    const v = data[key]
+    if (v !== undefined && v !== null && v !== '') payload[key] = v
+  }
+  if (Object.keys(payload).length === 0) return null
+  const { data: updated, error } = await supabase
+    .from('customers')
+    .update(payload)
+    .eq('customer_id', customerId)
+    .select()
+    .single()
+  if (error) throw error
+  return updated
+}
