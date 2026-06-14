@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #E8EAF6;
+  font-family: 'Inter', system-ui, sans-serif;
+  overscroll-behavior: none;
+}
+
+/* Phone shell on desktop */
+#root {
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.phone-shell {
+  width: 100%;
+  max-width: 420px;
+  min-height: 100dvh;
+  background: #F8F9FF;
+  position: relative;
+  overflow-x: hidden;
+  box-shadow: 0 0 40px rgba(67,56,202,0.15);
+}
+
+/* Range slider */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #4338CA;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(67,56,202,0.4);
+  cursor: pointer;
+}
+input[type='range']::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #4338CA;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(67,56,202,0.4);
+  cursor: pointer;
+}
+
+/* Transitions */
+.screen-enter {
+  animation: slideIn 0.25s ease-out;
+}
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.screen-exit {
+  animation: slideOut 0.2s ease-in;
+}
+@keyframes slideOut {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(-40%); opacity: 0; }
+}
+
+/* Pulse for big numbers */
+@keyframes pulse-once {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.pulse-in { animation: pulse-once 0.5s ease; }
+
+/* Bottom drawer */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 40;
+}
+.drawer-panel {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 20px 20px 0 0;
+  z-index: 50;
+  padding: 24px 20px 40px;
+  animation: drawerUp 0.3s ease-out;
+}
+@keyframes drawerUp {
+  from { transform: translateX(-50%) translateY(100%); }
+  to   { transform: translateX(-50%) translateY(0); }
+}
+
+/* Tile select */
+.problem-tile {
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.problem-tile:active { transform: scale(0.95); }
