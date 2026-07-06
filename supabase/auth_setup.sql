@@ -43,11 +43,18 @@ CREATE POLICY "profiles_insert" ON profiles FOR INSERT
 CREATE POLICY "profiles_update" ON profiles FOR UPDATE
   USING (get_my_role() = 'admin' OR id = auth.uid());
 
--- ── 4. IMPORTANT: Disable email confirmation ──────────────────────────────────
+-- ── 4. Add assigned_to on customers (needs profiles to exist first) ──────────
+
+ALTER TABLE customers
+  ADD COLUMN IF NOT EXISTS assigned_to UUID REFERENCES profiles(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS customers_assigned_to_idx ON customers (assigned_to);
+
+-- ── 5. IMPORTANT: Disable email confirmation ──────────────────────────────────
 -- Go to Supabase Dashboard → Authentication → Providers → Email
 -- Turn OFF "Confirm email" — field agents won't have email access.
 
--- ── 5. Bootstrap: promote the first admin manually ───────────────────────────
+-- ── 6. Bootstrap: promote the first admin manually ───────────────────────────
 -- After the first user registers via the app, run this in SQL Editor:
 --
 --   UPDATE profiles SET role = 'admin', is_approved = true

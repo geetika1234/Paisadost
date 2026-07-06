@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { getCurrentUser, setCurrentUser } from '../lib/db/dashboard'
 import { saveCustomer, updateCustomer, checkMobileDuplicate, assignCustomer } from '../lib/db/customers'
@@ -266,10 +266,18 @@ export default function S_CustomerForm() {
   const [mobileError,    setMobileError]    = useState(null)
   const [checkingMobile, setCheckingMobile] = useState(false)
   // photoFiles holds File objects for upload; data.photos holds blob URLs for preview
-  const [photoFiles,   setPhotoFiles]   = useState([])
+  const [photoFiles,    setPhotoFiles]    = useState([])
   const [stampingCount, setStampingCount] = useState(0)
+  const [geoCache,      setGeoCache]      = useState(null)
   const cameraRef  = useRef()
   const galleryRef = useRef()
+
+  // Warm up location as soon as the user reaches the photo step — fires the
+  // permission prompt early so it doesn't block the camera button later.
+  useEffect(() => {
+    if (step !== 2) return
+    getGeoLocation().then(g => { if (g) setGeoCache(g) })
+  }, [step])
 
   function handleLogin(name) {
     setCurrentUser(name)
@@ -312,8 +320,8 @@ export default function S_CustomerForm() {
     const fileArr = Array.from(files)
     setStampingCount(fileArr.length)
 
-    // Get GPS once for the whole batch
-    const geo = await getGeoLocation()
+    // Use cached fix if available, otherwise fetch fresh
+    const geo = geoCache ?? await getGeoLocation()
 
     // Stamp each photo in parallel
     const stamped = await Promise.all(

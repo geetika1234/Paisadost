@@ -1,16 +1,25 @@
-// Requests GPS coordinates with a 10-second timeout.
-// Resolves to { lat, lng, accuracy } or null if denied/unavailable.
+// Try network-based location first (fast, ~1-2s), then GPS if inaccurate.
+// maximumAge:30000 uses a cached fix if one exists — instant on repeat use.
 export function getGeoLocation() {
   return new Promise(resolve => {
     if (!navigator.geolocation) { resolve(null); return }
+
+    let settled = false
+    function done(val) {
+      if (settled) return
+      settled = true
+      resolve(val)
+    }
+
+    // Fast attempt: network/wifi-based, accepts cached fix up to 30s old
     navigator.geolocation.getCurrentPosition(
-      pos => resolve({
+      pos => done({
         lat:      pos.coords.latitude,
         lng:      pos.coords.longitude,
         accuracy: Math.round(pos.coords.accuracy),
       }),
-      () => resolve(null),
-      { timeout: 10000, enableHighAccuracy: true }
+      () => done(null),
+      { timeout: 8000, enableHighAccuracy: false, maximumAge: 30000 }
     )
   })
 }
