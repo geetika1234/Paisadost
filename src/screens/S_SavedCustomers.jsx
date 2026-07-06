@@ -55,15 +55,15 @@ export default function S_SavedCustomers() {
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-brand-700 text-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between">
+      <div className="bg-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between border-b border-slate-100">
         <div>
           <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
           <h1 className="text-lg font-extrabold leading-tight">Saved Customers</h1>
-          <p className="text-xs text-brand-300 mt-0.5">{customers.length} customer{customers.length !== 1 ? 's' : ''} saved</p>
+          <p className="text-xs text-brand-400 mt-0.5">{customers.length} customer{customers.length !== 1 ? 's' : ''} saved</p>
         </div>
         <button
           onClick={closeSavedCustomers}
-          className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-lg leading-none"
+          className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-lg leading-none"
         >
           ×
         </button>
@@ -113,7 +113,7 @@ export default function S_SavedCustomers() {
                   </div>
                   <div className="flex items-center gap-2 mt-1.5">
                     {record.inputs.businessType && (
-                      <span className="text-xs bg-brand-50 text-brand-600 px-2 py-0.5 rounded-full font-semibold capitalize">
+                      <span className="text-xs bg-white text-brand-600 px-2 py-0.5 rounded-full font-semibold capitalize">
                         {record.inputs.businessType}
                       </span>
                     )}

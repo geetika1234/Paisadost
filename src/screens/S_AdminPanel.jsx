@@ -77,7 +77,7 @@ export default function S_AdminPanel() {
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-brand-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
+      <div className="bg-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between border-b border-slate-100">
         <div>
           <img
             src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
@@ -88,7 +88,7 @@ export default function S_AdminPanel() {
         </div>
         <button
           onClick={closeAdminPanel}
-          className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-xl leading-none"
+          className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xl leading-none"
         >
           ×
         </button>
@@ -190,7 +190,7 @@ export default function S_AdminPanel() {
                     </div>
                     <button
                       onClick={() => setExpandedLead(isExpanded ? null : lead.customer_id)}
-                      className="flex-shrink-0 text-xs font-bold text-brand-600 border border-brand-200 bg-brand-50 rounded-lg px-3 py-1.5 active:scale-95 transition-all"
+                      className="flex-shrink-0 text-xs font-bold text-brand-600 border border-brand-200 bg-white rounded-lg px-3 py-1.5 active:scale-95 transition-all"
                     >
                       {isExpanded ? 'Cancel' : 'Assign →'}
                     </button>
@@ -229,7 +229,7 @@ export default function S_AdminPanel() {
                 <p className="text-sm font-extrabold text-slate-800 truncate">
                   {p.fullname}
                   {p.id === myProfile?.id && (
-                    <span className="ml-2 text-[10px] font-bold text-brand-500 bg-brand-50 px-1.5 py-0.5 rounded-full">You</span>
+                    <span className="ml-2 text-[10px] font-bold text-brand-500 bg-white px-1.5 py-0.5 rounded-full">You</span>
                   )}
                 </p>
                 <p className="text-xs text-slate-400">📞 {p.mobile}</p>

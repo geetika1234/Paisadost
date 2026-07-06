@@ -59,17 +59,16 @@ export default function S_Auth() {
     : !!(form.mobile.trim() && form.name.trim() && form.password && form.confirm)
 
   return (
-    <div className="phone-shell flex flex-col bg-brand-50" style={{ minHeight: '100dvh' }}>
+    <div className="phone-shell flex flex-col bg-white" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-brand-700 text-white pt-16 pb-10 px-6 flex-shrink-0 flex flex-col items-center">
+      <div className="bg-white pt-16 pb-10 px-6 flex-shrink-0 flex flex-col items-center border-b border-slate-100">
         <img
           src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
           alt="Ar Financier's"
-          className="h-10 w-auto object-contain mb-3"
+          className="h-14 w-auto object-contain mb-3"
         />
-        <h1 className="text-2xl font-extrabold">Ar Financier's</h1>
-        <p className="text-brand-300 text-sm mt-1">Field Sales Platform</p>
+        <p className="text-brand-600 text-sm font-semibold mt-1">Field Sales Platform</p>
       </div>
 
       {/* Tab bar */}
@@ -79,7 +78,7 @@ export default function S_Auth() {
             key={key}
             onClick={() => switchTab(key)}
             className={`flex-1 py-3 text-sm font-bold border-b-2 transition-all
-              ${tab === key ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-400'}`}
+              ${tab === key ? 'border-accent-400 text-accent-400' : 'border-transparent text-slate-400'}`}
           >
             {label}
           </button>
@@ -167,7 +166,7 @@ export default function S_Auth() {
         <button
           onClick={tab === 'login' ? handleLogin : handleRegister}
           disabled={loading || !canSubmit}
-          className="w-full py-4 bg-brand-600 text-white font-bold rounded-2xl disabled:opacity-40 active:scale-95 transition-all shadow-lg shadow-brand-200 text-base"
+          className="w-full py-4 bg-accent-400 text-white font-bold rounded-2xl disabled:opacity-40 active:scale-95 transition-all shadow-lg shadow-accent-200 text-base"
         >
           {loading
             ? (tab === 'login' ? 'Login ho raha hai...' : 'Register ho raha hai...')

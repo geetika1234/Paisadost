@@ -57,7 +57,7 @@ export default function LoanCustomizeCard() {
                   onClick={() => update('tenureMonths', t)}
                   className={`py-2 rounded-xl text-xs font-bold border-2 transition-all
                     ${inputs.tenureMonths === t
-                      ? 'border-brand-600 bg-brand-50 text-brand-600'
+                      ? 'border-brand-600 bg-white text-brand-600'
                       : 'border-slate-200 text-slate-500 bg-white'}`}
                 >
                   {t}M

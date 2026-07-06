@@ -88,7 +88,7 @@ export default function S_Workspace() {
 
   if (!activeCustomer) {
     return (
-      <div className="phone-shell flex flex-col items-center justify-center bg-brand-50" style={{ minHeight: '100dvh' }}>
+      <div className="phone-shell flex flex-col items-center justify-center bg-white" style={{ minHeight: '100dvh' }}>
         <p className="text-slate-400 text-sm">Koi active customer nahi.</p>
         <button onClick={() => setMainScreen('home')} className="mt-4 text-brand-600 font-bold text-sm">
           ← Home Pe Jao
@@ -200,13 +200,13 @@ export default function S_Workspace() {
   }
 
   return (
-    <div className="phone-shell flex flex-col bg-brand-50" style={{ minHeight: '100dvh' }}>
+    <div className="phone-shell flex flex-col bg-white" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-brand-700 text-white pt-12 pb-5 px-5 flex-shrink-0">
+      <div className="bg-white pt-12 pb-5 px-5 flex-shrink-0">
         <button
           onClick={() => setMainScreen('home')}
-          className="text-brand-300 text-xs font-semibold mb-3 flex items-center gap-1"
+          className="text-brand-400 text-xs font-semibold mb-3 flex items-center gap-1"
         >
           ← Home
         </button>
@@ -217,14 +217,14 @@ export default function S_Workspace() {
           <div className="flex-1 min-w-0">
             <p className="text-lg font-extrabold leading-tight truncate">{activeCustomer.shopName}</p>
             {activeCustomer.ownerName && (
-              <p className="text-xs text-brand-300 truncate">{activeCustomer.ownerName}</p>
+              <p className="text-xs text-brand-400 truncate">{activeCustomer.ownerName}</p>
             )}
             <div className="flex items-center gap-2 mt-1">
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stage.color}`}>
                 {stage.label}
               </span>
               {activeCustomer.city && (
-                <span className="text-[10px] text-brand-300">{activeCustomer.city}</span>
+                <span className="text-[10px] text-brand-400">{activeCustomer.city}</span>
               )}
             </div>
           </div>
@@ -288,7 +288,7 @@ export default function S_Workspace() {
               {roiDone ? 'ROI dikhaya ja chuka hai — tap to redo' : 'Loan ka faida dikhao'}
             </p>
           </div>
-          <span className={`text-lg flex-shrink-0 ${roiDone ? 'text-slate-300' : 'text-brand-300'}`}>›</span>
+          <span className={`text-lg flex-shrink-0 ${roiDone ? 'text-slate-300' : 'text-brand-400'}`}>›</span>
         </button>
 
         {/* ── Top Insights ──────────────────────────────────────────────── */}
@@ -422,7 +422,7 @@ export default function S_Workspace() {
         <div className="flex gap-3">
           <button
             onClick={openDashboard}
-            className="flex-1 py-3 rounded-xl border border-brand-200 text-brand-600 text-sm font-bold active:bg-brand-50 transition-all"
+            className="flex-1 py-3 rounded-xl border border-brand-200 text-brand-600 text-sm font-bold active:bg-white transition-all"
           >
             🔄 Lead Badlo
           </button>

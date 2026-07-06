@@ -74,12 +74,12 @@ export default function S7_Offer() {
           <div className="bg-white/15 rounded-2xl p-3">
             <p className="text-xs text-brand-200 mb-1">Monthly EMI</p>
             <p className="text-2xl font-extrabold">{fmtINR(rec.recEMI)}</p>
-            <p className="text-xs text-brand-300">= {fmtINR(rec.recEMI / 30)}/din</p>
+            <p className="text-xs text-brand-400">= {fmtINR(rec.recEMI / 30)}/din</p>
           </div>
           <div className="bg-white/15 rounded-2xl p-3">
             <p className="text-xs text-brand-200 mb-1">Tenure</p>
             <p className="text-2xl font-extrabold">{rec.recTenure} mah</p>
-            <p className="text-xs text-brand-300">@ {inputs.interestRate}% yearly</p>
+            <p className="text-xs text-brand-400">@ {inputs.interestRate}% yearly</p>
           </div>
         </div>
       </div>
@@ -133,7 +133,7 @@ export default function S7_Offer() {
       </div>
 
       {/* Why this amount */}
-      <div className="bg-brand-50 rounded-2xl p-4 border border-brand-100 mb-5">
+      <div className="bg-white rounded-2xl p-4 border border-brand-100 mb-5">
         <p className="text-sm font-bold text-brand-600 mb-2">🤔 Yeh Amount Kyun?</p>
         <ul className="space-y-1.5">
           <li className="text-xs text-slate-600">

@@ -13,14 +13,14 @@ export default function S_PendingApproval() {
   }
 
   return (
-    <div className="phone-shell flex flex-col bg-brand-50" style={{ minHeight: '100dvh' }}>
+    <div className="phone-shell flex flex-col bg-white" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-brand-700 text-white pt-12 pb-5 px-5 flex-shrink-0">
+      <div className="bg-white pt-12 pb-5 px-5 flex-shrink-0 border-b border-slate-100">
         <img
           src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
           alt="Ar Financier's"
-          className="h-6 w-auto object-contain"
+          className="h-8 w-auto object-contain"
         />
       </div>
 
@@ -40,7 +40,7 @@ export default function S_PendingApproval() {
           Aapka account ban gaya. Admin approval milne ke baad app use kar sakte ho.
         </p>
 
-        <div className="bg-brand-50 border border-brand-200 rounded-2xl px-5 py-4 w-full mb-8">
+        <div className="bg-white border border-brand-200 rounded-2xl px-5 py-4 w-full mb-8">
           <p className="text-xs font-bold text-brand-700 mb-1.5">Kya Karna Hai?</p>
           <div className="space-y-1">
             <p className="text-xs text-brand-600">• Apne manager ko batao ki aapne register kar liya</p>

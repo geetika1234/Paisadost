@@ -106,7 +106,7 @@ function CheckItem({ label, checked, onChange, disabled }) {
       onClick={onChange}
       disabled={disabled}
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all active:scale-[0.98] mb-1.5
-        ${checked ? 'bg-brand-50 border-brand-400' : 'bg-white border-slate-200'}
+        ${checked ? 'bg-white border-brand-400' : 'bg-white border-slate-200'}
         ${disabled && !checked ? 'opacity-40' : ''}`}
     >
       <div className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center
@@ -123,7 +123,7 @@ function RadioItem({ label, checked, onChange }) {
     <button
       onClick={onChange}
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all active:scale-[0.98] mb-1.5
-        ${checked ? 'bg-brand-50 border-brand-400' : 'bg-white border-slate-200'}`}
+        ${checked ? 'bg-white border-brand-400' : 'bg-white border-slate-200'}`}
     >
       <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center
         ${checked ? 'border-brand-600' : 'border-slate-300'}`}>
@@ -147,7 +147,7 @@ function OtherInput({ value, onChange, placeholder = 'Other likho...' }) {
 }
 
 function Card({ children }) {
-  return <div className="bg-brand-50 rounded-2xl border border-slate-200 p-4 mb-4">{children}</div>
+  return <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-4">{children}</div>
 }
 
 // ── Login Gate ────────────────────────────────────────────────────────────────
@@ -157,12 +157,12 @@ function LoginGate({ onLogin, onClose }) {
   return (
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
       {/* Header */}
-      <div className="bg-brand-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
+      <div className="bg-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between border-b border-slate-100">
         <div>
-          <p className="text-xs font-medium text-brand-300 uppercase tracking-widest">Customer Engagement</p>
+          <p className="text-xs font-medium text-brand-400 uppercase tracking-widest">Customer Engagement</p>
           <h1 className="text-xl font-extrabold leading-tight mt-0.5">Salesman Login</h1>
         </div>
-        <button onClick={onClose} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-lg leading-none">×</button>
+        <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-lg leading-none">×</button>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-16">
@@ -190,7 +190,7 @@ function LoginGate({ onLogin, onClose }) {
         <button
           onClick={() => name.trim() && onLogin(name)}
           disabled={!name.trim()}
-          className="w-full py-4 bg-brand-600 text-white font-bold rounded-2xl disabled:opacity-40 active:scale-95 transition-all shadow-lg shadow-brand-200 text-base"
+          className="w-full py-4 bg-accent-400 text-white font-bold rounded-2xl disabled:opacity-40 active:scale-95 transition-all shadow-lg shadow-accent-200 text-base"
         >
           Login Karein →
         </button>
@@ -540,10 +540,10 @@ export default function S_CustomerForm() {
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-brand-700 text-white pt-12 pb-4 px-5 flex-shrink-0">
+      <div className="bg-white pt-12 pb-4 px-5 flex-shrink-0">
         <div className="flex items-center justify-between mb-1">
           <div>
-            <p className="text-xs font-medium text-brand-300 uppercase tracking-widest">Customer Engagement</p>
+            <p className="text-xs font-medium text-brand-400 uppercase tracking-widest">Customer Engagement</p>
             <h1 className="text-xl font-extrabold leading-tight">{STEPS[step].icon} {STEPS[step].label}</h1>
             {(activeCustomer?.shopName || data.shopName) && (
               <p className="text-xs text-brand-200 font-semibold mt-0.5 truncate">
@@ -551,7 +551,7 @@ export default function S_CustomerForm() {
               </p>
             )}
           </div>
-          <button onClick={closeCustomerForm} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-lg">×</button>
+          <button onClick={closeCustomerForm} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-lg">×</button>
         </div>
 
         {/* Salesman name badge */}
@@ -578,7 +578,7 @@ export default function S_CustomerForm() {
                 <div className={`h-1.5 rounded-full transition-all ${done ? 'bg-green-400' : active ? 'bg-white' : 'bg-white/30'}`} />
                 <div className="flex items-center gap-1 mt-1">
                   {done && <span className="text-green-400 text-[10px] font-bold">✓</span>}
-                  <p className={`text-[10px] font-medium truncate ${active ? 'text-white' : done ? 'text-green-300' : 'text-brand-300'}`}>{s.label}</p>
+                  <p className={`text-[10px] font-medium truncate ${active ? 'text-white' : done ? 'text-green-300' : 'text-brand-400'}`}>{s.label}</p>
                 </div>
               </button>
             )
@@ -648,7 +648,7 @@ export default function S_CustomerForm() {
                       key={bt.label}
                       onClick={() => toggleArr('bizTypes', bt.label)}
                       className={`py-2.5 px-2 rounded-xl text-xs font-semibold text-left border-2 transition-all active:scale-95
-                        ${checked ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700'}`}
+                        ${checked ? 'border-brand-400 bg-white text-brand-700' : 'border-slate-200 text-slate-700'}`}
                     >
                       {bt.emoji} {bt.label}
                     </button>
@@ -660,7 +660,7 @@ export default function S_CustomerForm() {
                     if (data.bizTypes.includes('__other__')) set('bizTypeOther', '')
                   }}
                   className={`py-2.5 px-2 rounded-xl text-xs font-semibold text-left border-2 transition-all active:scale-95
-                    ${data.bizTypes.includes('__other__') ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700'}`}
+                    ${data.bizTypes.includes('__other__') ? 'border-brand-400 bg-white text-brand-700' : 'border-slate-200 text-slate-700'}`}
                 >
                   ✏️ Other
                 </button>
@@ -770,7 +770,7 @@ export default function S_CustomerForm() {
           <div className="space-y-4">
 
             {/* Date/time stamp */}
-            <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
+            <div className="bg-white border border-brand-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
               <span className="text-sm">🕐</span>
               <p className="text-xs font-semibold text-brand-700">{fmtDateTime(data.capturedAt)}</p>
             </div>

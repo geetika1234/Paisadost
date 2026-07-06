@@ -26,28 +26,26 @@ export default function S_Home() {
   }
 
   return (
-    <div className="phone-shell flex flex-col bg-brand-50" style={{ minHeight: '100dvh' }}>
+    <div className="phone-shell flex flex-col bg-white" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-brand-700 text-white pt-12 pb-8 px-5 flex-shrink-0">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <img
-              src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
-              alt="Ar Financier's"
-              className="h-8 w-auto object-contain mb-1"
-            />
-            <h1 className="text-2xl font-extrabold mt-0.5 leading-tight">Aaj Kya Karein?</h1>
-          </div>
+      <div className="bg-white pt-12 pb-5 px-5 flex-shrink-0 border-b border-slate-100">
+        <div className="flex items-center justify-between">
+          <img
+            src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
+            alt="Ar Financier's"
+            className="h-9 w-auto object-contain"
+          />
           {salesman && (
-            <div className="w-10 h-10 rounded-full bg-brand-500/60 flex items-center justify-center text-base font-extrabold">
-              {salesman.charAt(0).toUpperCase()}
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-slate-500 font-medium">Namaste, {salesman} 👋</p>
+              <div className="w-9 h-9 rounded-full bg-brand-600 flex items-center justify-center text-sm font-extrabold text-white">
+                {salesman.charAt(0).toUpperCase()}
+              </div>
             </div>
           )}
         </div>
-        {salesman && (
-          <p className="text-xs text-brand-300 font-medium">Namaste, {salesman} 👋</p>
-        )}
+        <h1 className="text-xl font-extrabold text-slate-800 mt-3">Aaj Kya Karein?</h1>
       </div>
 
       {/* Body */}
@@ -62,7 +60,7 @@ export default function S_Home() {
             </div>
             <button
               onClick={() => setMainScreen('workspace')}
-              className="w-full flex items-center gap-3 px-4 py-3 active:bg-brand-50 transition-all text-left"
+              className="w-full flex items-center gap-3 px-4 py-3 active:bg-white transition-all text-left"
             >
               <div className="w-12 h-12 rounded-2xl bg-brand-600 flex items-center justify-center text-lg font-extrabold text-white flex-shrink-0 shadow-sm shadow-brand-200">
                 {(activeCustomer.shopName || '?').charAt(0).toUpperCase()}
@@ -104,7 +102,7 @@ export default function S_Home() {
         {/* Nayi Lead */}
         <button
           onClick={openQuickCreate}
-          className="w-full bg-brand-600 text-white rounded-2xl px-5 py-5 flex items-center gap-4 shadow-lg shadow-brand-200 active:scale-[0.98] transition-all text-left"
+          className="w-full bg-accent-400 text-white rounded-2xl px-5 py-5 flex items-center gap-4 shadow-lg shadow-accent-200 active:scale-[0.98] transition-all text-left"
         >
           <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl flex-shrink-0">
             🏪
@@ -113,13 +111,13 @@ export default function S_Home() {
             <p className="text-base font-extrabold">Nayi Lead Banao</p>
             <p className="text-xs text-brand-200 mt-0.5">Naye customer ka record banao</p>
           </div>
-          <span className="text-brand-300 text-xl flex-shrink-0">›</span>
+          <span className="text-brand-400 text-xl flex-shrink-0">›</span>
         </button>
 
         {/* Existing Lead */}
         <button
           onClick={openDashboard}
-          className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-5 flex items-center gap-4 shadow-sm active:bg-brand-50 active:scale-[0.98] transition-all text-left"
+          className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-5 flex items-center gap-4 shadow-sm active:bg-white active:scale-[0.98] transition-all text-left"
         >
           <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-2xl flex-shrink-0">
             📋
@@ -154,9 +152,9 @@ export default function S_Home() {
         {profile?.role === 'admin' && (
           <button
             onClick={openAdminPanel}
-            className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 flex items-center gap-4 shadow-sm active:bg-brand-50 active:scale-[0.98] transition-all text-left"
+            className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 flex items-center gap-4 shadow-sm active:bg-white active:scale-[0.98] transition-all text-left"
           >
-            <div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center text-2xl flex-shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-2xl flex-shrink-0">
               👑
             </div>
             <div className="flex-1">

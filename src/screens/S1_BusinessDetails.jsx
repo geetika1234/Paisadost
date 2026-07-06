@@ -77,7 +77,7 @@ function NumberInput({ label, value, onChange, suffix = '' }) {
     <div className="mb-3">
       <p className="text-xs font-semibold text-slate-500 mb-1">{label}</p>
       <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden focus-within:border-brand-600">
-        <span className="px-3 py-2.5 bg-brand-50 text-slate-500 font-bold text-sm border-r border-slate-200">₹</span>
+        <span className="px-3 py-2.5 bg-white text-slate-500 font-bold text-sm border-r border-slate-200">₹</span>
         <input
           type="number"
           inputMode="numeric"
@@ -91,7 +91,7 @@ function NumberInput({ label, value, onChange, suffix = '' }) {
           }}
           className="flex-1 px-3 py-2.5 text-sm font-bold text-slate-800 outline-none bg-white"
         />
-        {suffix && <span className="px-3 py-2.5 bg-brand-50 text-slate-500 text-xs font-bold border-l border-slate-200">{suffix}</span>}
+        {suffix && <span className="px-3 py-2.5 bg-white text-slate-500 text-xs font-bold border-l border-slate-200">{suffix}</span>}
       </div>
     </div>
   )
@@ -169,7 +169,7 @@ export default function S1_BusinessDetails() {
               onClick={() => { update('businessType', bt.label); update('bizTypes', [bt.label]) }}
               className={`py-2.5 px-2 rounded-xl text-xs font-semibold text-left border-2 transition-all
                 ${inputs.businessType === bt.label
-                  ? 'border-brand-600 bg-brand-50 text-brand-600'
+                  ? 'border-brand-600 bg-white text-brand-600'
                   : 'border-slate-200 text-slate-700'}`}
             >
               {bt.emoji} {bt.label}
@@ -179,7 +179,7 @@ export default function S1_BusinessDetails() {
             onClick={() => { update('businessType', '__other__'); update('bizTypes', ['__other__']) }}
             className={`py-2.5 px-2 rounded-xl text-xs font-semibold text-left border-2 transition-all
               ${inputs.businessType === '__other__'
-                ? 'border-brand-600 bg-brand-50 text-brand-600'
+                ? 'border-brand-600 bg-white text-brand-600'
                 : 'border-slate-200 text-slate-700'}`}
           >
             Other
@@ -203,7 +203,7 @@ export default function S1_BusinessDetails() {
               onClick={() => update('businessAge', a.value)}
               className={`flex-1 py-2 rounded-xl text-xs font-bold text-center border-2 transition-all
                 ${inputs.businessAge === a.value
-                  ? 'border-brand-600 bg-brand-50 text-brand-600'
+                  ? 'border-brand-600 bg-white text-brand-600'
                   : 'border-slate-200 text-slate-500'}`}
             >
               {a.label}
@@ -214,7 +214,7 @@ export default function S1_BusinessDetails() {
 
       {/* ── 2. Sales & Profit ── */}
       <Section icon="💰" title="Bikri aur Faida" open={open.sales} onToggle={() => toggle('sales')} done={done.sales}>
-        <div className="bg-brand-50 rounded-xl p-3 mb-4 mt-2 flex justify-between items-center">
+        <div className="bg-white rounded-xl p-3 mb-4 mt-2 flex justify-between items-center">
           <div>
             <p className="text-xs text-brand-600 font-semibold">Monthly Profit</p>
             <p className="text-2xl font-extrabold text-brand-600">{fmtINR(monthlyProfit)}</p>
@@ -279,7 +279,7 @@ export default function S1_BusinessDetails() {
                     onChange={e => update(d.key, Number(e.target.value) || 0)}
                     className="w-full px-2 py-2 text-sm font-bold text-center outline-none"
                   />
-                  <span className="px-2 py-2 bg-brand-50 text-slate-500 text-xs font-bold border-l border-slate-200">%</span>
+                  <span className="px-2 py-2 bg-white text-slate-500 text-xs font-bold border-l border-slate-200">%</span>
                 </div>
               </div>
             ))}
@@ -404,7 +404,7 @@ export default function S1_BusinessDetails() {
           <NumberInput label="Bijli / Electricity (₹/mah)" value={inputs.electricity} onChange={v => update('electricity', v)} />
         </div>
         <NumberInput label="Salary / Wages (₹/mah)" value={inputs.salaries} onChange={v => update('salaries', v)} />
-        <div className="bg-brand-50 rounded-xl px-3 py-2 mb-3 flex justify-between">
+        <div className="bg-white rounded-xl px-3 py-2 mb-3 flex justify-between">
           <span className="text-xs text-slate-600 font-semibold">Total Fixed Expenses</span>
           <span className="text-sm font-extrabold text-slate-800">
             {fmtINRFull(inputs.rent + inputs.electricity + inputs.salaries)}/mah
@@ -463,7 +463,7 @@ export default function S1_BusinessDetails() {
               onClick={() => update('existingLoan', opt.value)}
               className={`flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all
                 ${inputs.existingLoan === opt.value
-                  ? 'border-brand-500 bg-brand-50 text-brand-700'
+                  ? 'border-brand-500 bg-white text-brand-700'
                   : 'border-slate-200 text-slate-500'}`}
             >
               {opt.label}

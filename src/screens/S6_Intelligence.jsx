@@ -125,7 +125,7 @@ export default function S6_Intelligence() {
       {/* Risk flags */}
       {risks.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-4">
-          <div className="px-4 py-3 bg-brand-50 border-b border-slate-100">
+          <div className="px-4 py-3 bg-white border-b border-slate-100">
             <p className="text-sm font-bold text-slate-700">⚑ Dhyan Rakhne Wali Baatein</p>
           </div>
           {risks.map((r, i) => (
@@ -139,7 +139,7 @@ export default function S6_Intelligence() {
 
       {/* Agent-only note */}
       <div className="bg-brand-900 rounded-2xl p-4 text-white mb-4">
-        <p className="text-xs font-bold text-brand-300 uppercase tracking-widest mb-1">
+        <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-1">
           🔒 Agent Note (Sirf Aapke Liye)
         </p>
         <p className="text-sm font-medium text-white">{agentNote}</p>
@@ -147,7 +147,7 @@ export default function S6_Intelligence() {
 
       {/* Score breakdown */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="px-4 py-3 bg-brand-50 border-b border-slate-100">
+        <div className="px-4 py-3 bg-white border-b border-slate-100">
           <p className="text-sm font-bold text-slate-700">Score Ka Breakdown</p>
         </div>
         {[

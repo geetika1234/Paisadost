@@ -37,7 +37,7 @@ export default function S2_Problems() {
             <div key={p.tag}>
               {/* Main tile */}
               <div className={`w-full rounded-2xl border-2 transition-all overflow-hidden
-                ${active ? 'border-brand-600 bg-brand-50' : 'border-slate-200 bg-white'}`}
+                ${active ? 'border-brand-600 bg-white' : 'border-slate-200 bg-white'}`}
               >
                 <div className="flex items-center">
                   {/* Select area */}
@@ -119,7 +119,7 @@ export default function S2_Problems() {
       </div>
 
       {totalSelected > 0 && (
-        <div className="mt-4 bg-brand-50 rounded-2xl p-4 border border-brand-200">
+        <div className="mt-4 bg-white rounded-2xl p-4 border border-brand-200">
           <p className="text-sm font-semibold text-brand-600">
             🎯 {selected.length} problem{selected.length > 1 ? 'ein' : ''}
             {selectedSub.length > 0 ? ` · ${selectedSub.length} sub-problem${selectedSub.length > 1 ? 's' : ''}` : ''} select ki — ab dekhte hain kitna nuksaan ho raha hai.

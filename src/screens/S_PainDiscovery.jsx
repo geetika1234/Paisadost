@@ -280,12 +280,12 @@ export default function S_PainDiscovery() {
   if (!customerId) {
     return (
       <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
-        <div className="bg-brand-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
+        <div className="bg-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between border-b border-slate-100">
           <div>
             <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
             <h1 className="text-lg font-extrabold leading-tight">🔍 Pain Discovery</h1>
           </div>
-          <button onClick={closePainDiscovery} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-lg">×</button>
+          <button onClick={closePainDiscovery} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-lg">×</button>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20 gap-4">
           <span className="text-5xl">🏪</span>
@@ -306,16 +306,16 @@ export default function S_PainDiscovery() {
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-brand-700 text-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between">
+      <div className="bg-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between border-b border-slate-100">
         <div>
           <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
           <h1 className="text-lg font-extrabold leading-tight">🔍 Pain Discovery</h1>
           <p className="text-xs text-brand-200 font-semibold truncate mt-0.5">🏪 {activeCustomer?.shopName || ''}</p>
-          <p className="text-xs text-brand-300 mt-0.5">{totalDone} / {QUESTIONS.length} questions done</p>
+          <p className="text-xs text-brand-400 mt-0.5">{totalDone} / {QUESTIONS.length} questions done</p>
         </div>
         <button
           onClick={closePainDiscovery}
-          className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-lg leading-none"
+          className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-lg leading-none"
         >
           ×
         </button>
@@ -342,7 +342,7 @@ export default function S_PainDiscovery() {
               className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all ${isDone ? 'border-brand-200' : 'border-slate-100'}`}
             >
               {/* Question header */}
-              <div className={`px-4 py-3 flex items-start gap-3 ${isDone ? 'bg-brand-50' : ''}`}>
+              <div className={`px-4 py-3 flex items-start gap-3 ${isDone ? 'bg-white' : ''}`}>
                 <span className={`flex-shrink-0 w-7 h-7 rounded-full text-xs font-extrabold flex items-center justify-center mt-0.5
                   ${isDone ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
                   {isDone ? '✓' : q.num}
@@ -402,7 +402,7 @@ export default function S_PainDiscovery() {
                         <button
                           onClick={() => handleCategory(p)}
                           className={`w-full text-left flex items-center gap-3 px-3 py-2.5 transition-all active:scale-[0.98]
-                            ${selected ? 'bg-brand-50' : 'bg-white'}`}
+                            ${selected ? 'bg-white' : 'bg-white'}`}
                         >
                           <span className="text-lg">{p.emoji}</span>
                           <div className="flex-1">
@@ -414,7 +414,7 @@ export default function S_PainDiscovery() {
 
                         {/* Sub-problems + questions */}
                         {expanded && p.subProblems.length > 0 && (
-                          <div className="border-t border-slate-100 bg-brand-50 px-3 py-2 space-y-2">
+                          <div className="border-t border-slate-100 bg-white px-3 py-2 space-y-2">
                             {p.subProblems.map(sp => {
                               const subSelected = inputs.subProblems.includes(sp.tag)
                               const qs = SUB_QUESTIONS[sp.tag] || []
@@ -424,7 +424,7 @@ export default function S_PainDiscovery() {
                                   <button
                                     onClick={() => toggleSubProblem(p.tag, sp.tag)}
                                     className={`w-full text-left flex items-center gap-2.5 px-3 py-2.5 transition-all active:scale-[0.98]
-                                      ${subSelected ? 'bg-brand-50 text-brand-700' : 'bg-white text-slate-600'}`}
+                                      ${subSelected ? 'bg-white text-brand-700' : 'bg-white text-slate-600'}`}
                                   >
                                     <span className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center text-xs
                                       ${subSelected ? 'border-brand-500 bg-brand-500 text-white' : 'border-slate-300'}`}>
@@ -435,7 +435,7 @@ export default function S_PainDiscovery() {
 
                                   {/* Questions shown when sub-problem selected */}
                                   {subSelected && qs.length > 0 && (
-                                    <div className="bg-brand-50 border-t border-brand-100 px-3 py-2 space-y-1.5">
+                                    <div className="bg-white border-t border-brand-100 px-3 py-2 space-y-1.5">
                                       {qs.map((q, i) => (
                                         <div key={i} className="flex gap-2 items-start">
                                           <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-100 text-brand-600 text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
@@ -452,7 +452,7 @@ export default function S_PainDiscovery() {
 
                         {/* Repair — no sub-problems, show questions directly when selected */}
                         {expanded && p.subProblems.length === 0 && (
-                          <div className="border-t border-slate-100 bg-brand-50 px-3 py-2 space-y-1.5">
+                          <div className="border-t border-slate-100 bg-white px-3 py-2 space-y-1.5">
                             {REPAIR_QUESTIONS.map((q, i) => (
                               <div key={i} className="flex gap-2 items-start">
                                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-100 text-brand-600 text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
@@ -539,7 +539,7 @@ export default function S_PainDiscovery() {
                 <button
                   onClick={() => toggleChecked(q.num)}
                   className={`w-full py-2.5 text-xs font-bold border-t transition-all
-                    ${isDone ? 'border-brand-100 text-brand-600 bg-brand-50' : 'border-slate-100 text-slate-400 bg-brand-50'}`}
+                    ${isDone ? 'border-brand-100 text-brand-600 bg-white' : 'border-slate-100 text-slate-400 bg-white'}`}
                 >
                   {isDone ? '✓ Done — Next Question' : 'Tap when answered →'}
                 </button>

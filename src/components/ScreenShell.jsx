@@ -6,18 +6,18 @@ export default function ScreenShell({ title, subtitle, step, total, onBack, chil
   const progress = ((step) / total) * 100
 
   const ctaBg = {
-    brand: 'bg-brand-600',
+    brand: 'bg-accent-400',
     red:   'bg-loss',
     green: 'bg-gain',
-  }[ctaColor] ?? 'bg-brand-600'
+  }[ctaColor] ?? 'bg-accent-400'
 
   return (
     <div className="phone-shell flex flex-col" style={{ minHeight: '100dvh' }}>
       {/* Header */}
-      <div className="bg-brand-600 text-white pt-12 pb-4 px-5 flex-shrink-0">
+      <div className="bg-white pt-12 pb-4 px-5 flex-shrink-0 border-b border-slate-100">
         <div className="flex items-center gap-3 mb-3">
           {onBack && (
-            <button onClick={onBack} className="text-white/70 text-xl leading-none">←</button>
+            <button onClick={onBack} className="text-slate-400 text-xl leading-none">←</button>
           )}
           <div className="flex-1">
             <div className="flex items-center gap-1.5 mb-0.5">
@@ -26,16 +26,16 @@ export default function ScreenShell({ title, subtitle, step, total, onBack, chil
                 alt="Ar Financier's"
                 className="h-5 w-auto object-contain"
               />
-              <span className="text-xs font-medium text-brand-200 uppercase tracking-widest">· Step {step + 1}/{total}</span>
+              <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">· Step {step + 1}/{total}</span>
             </div>
-            <h1 className="text-xl font-extrabold leading-tight mt-0.5">{title}</h1>
-            {subtitle && <p className="text-sm text-brand-200 mt-0.5">{subtitle}</p>}
+            <h1 className="text-xl font-extrabold leading-tight mt-0.5 text-slate-800">{title}</h1>
+            {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
           </div>
         </div>
         {/* Progress */}
-        <div className="h-1.5 bg-brand-900/40 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-white rounded-full transition-all duration-500"
+            className="h-full bg-brand-600 rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>

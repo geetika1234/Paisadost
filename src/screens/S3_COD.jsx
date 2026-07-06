@@ -82,7 +82,7 @@ const COMPONENTS = [
 function DrawerItem({ item, valueColor, sign = '' }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="bg-brand-50 rounded-xl p-3">
+    <div className="bg-white rounded-xl p-3">
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-2">
           <span className="text-lg">{item.icon}</span>

@@ -147,7 +147,7 @@ function AssistantBubble({ guidance }) {
           </div>
 
           {/* What to say */}
-          <div className="px-4 py-3 border-b border-slate-100 bg-brand-50">
+          <div className="px-4 py-3 border-b border-slate-100 bg-white">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">What to say</p>
             <div className="space-y-1.5">
               {g.say.map((s, i) => (
@@ -227,15 +227,15 @@ export default function S_SalesAssistant() {
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-brand-700 text-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between">
+      <div className="bg-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between border-b border-slate-100">
         <div>
           <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
           <h1 className="text-lg font-extrabold leading-tight">Sales Assistant 🤖</h1>
-          <p className="text-xs text-brand-300 mt-0.5">Customer ki situation batao — guide karunga</p>
+          <p className="text-xs text-brand-400 mt-0.5">Customer ki situation batao — guide karunga</p>
         </div>
         <button
           onClick={closeAssistant}
-          className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-lg leading-none"
+          className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-lg leading-none"
         >
           ×
         </button>
@@ -274,7 +274,7 @@ export default function S_SalesAssistant() {
             <button
               key={q.label}
               onClick={() => handleQuickPrompt(q)}
-              className="flex-shrink-0 text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200 rounded-full px-3 py-1.5 active:scale-95 transition-all"
+              className="flex-shrink-0 text-xs font-semibold bg-white text-brand-700 border border-brand-200 rounded-full px-3 py-1.5 active:scale-95 transition-all"
             >
               {q.label}
             </button>

@@ -43,7 +43,7 @@ export default function S5_Comparison() {
       onCta={next}
     >
       {/* Period label — makes the apples-to-apples clear */}
-      <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-2.5 mb-4 flex items-center gap-2">
+      <div className="bg-white border border-brand-200 rounded-xl px-4 py-2.5 mb-4 flex items-center gap-2">
         <span className="text-base">📅</span>
         <p className="text-sm font-semibold text-brand-600">
           Dono side <span className="underline">{n} mahine</span> ke liye dikha rahe hain — fair comparison
@@ -123,7 +123,7 @@ export default function S5_Comparison() {
       </div>
 
       {/* Insight */}
-      <div className="bg-brand-50 rounded-xl p-3 border border-brand-200">
+      <div className="bg-white rounded-xl p-3 border border-brand-200">
         <p className="text-sm font-semibold text-brand-600">{insight}</p>
       </div>
     </ScreenShell>

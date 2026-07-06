@@ -49,7 +49,7 @@ const GAIN_SOURCES = [
 function ROIDrawerItem({ item }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="bg-brand-50 rounded-xl p-3">
+    <div className="bg-white rounded-xl p-3">
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-2">
           <span className="text-lg">{item.icon}</span>
@@ -322,7 +322,7 @@ export default function S4_ROI() {
         <div className="rounded-2xl border border-slate-200 overflow-hidden mb-4">
           <button
             onClick={() => setShowAffordability(o => !o)}
-            className="w-full px-4 py-2 bg-brand-50 border-b border-slate-200 flex justify-between items-center"
+            className="w-full px-4 py-2 bg-white border-b border-slate-200 flex justify-between items-center"
           >
             <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">EMI Affordability — Business</p>
             <span className="text-slate-400 text-xs">{showAffordability ? '▲' : '▼'}</span>
@@ -404,7 +404,7 @@ export default function S4_ROI() {
         <div className="rounded-2xl border border-slate-200 overflow-hidden mb-4">
           <button
             onClick={() => setShowAffordability(o => !o)}
-            className="w-full px-4 py-2 bg-brand-50 border-b border-slate-200 flex justify-between items-center"
+            className="w-full px-4 py-2 bg-white border-b border-slate-200 flex justify-between items-center"
           >
             <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">EMI Affordability — Business + Personal</p>
             <span className="text-slate-400 text-xs">{showAffordability ? '▲' : '▼'}</span>
@@ -701,7 +701,7 @@ export default function S4_ROI() {
               <p className="text-xs text-green-500">₹{Math.round(roi.totalMonthlyGain).toLocaleString('en-IN')}/mah</p>
             </div>
           </div>
-          <div className="bg-brand-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center">
+          <div className="bg-white border border-slate-200 rounded-xl p-3 flex justify-between items-center">
             <p className="text-sm font-semibold text-slate-600">EMI (har mahine)</p>
             <div className="text-right">
               <p className="text-lg font-extrabold text-slate-600">−{fmtINR(roi.emiAmount)}/mah</p>
