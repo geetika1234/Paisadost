@@ -49,7 +49,7 @@ const GAIN_SOURCES = [
 function ROIDrawerItem({ item }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="bg-slate-50 rounded-xl p-3">
+    <div className="bg-brand-50 rounded-xl p-3">
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-2">
           <span className="text-lg">{item.icon}</span>
@@ -62,7 +62,7 @@ function ROIDrawerItem({ item }) {
       <p className="text-xs text-slate-500 mb-1.5">{item.body}</p>
       <button
         onClick={() => setOpen(o => !o)}
-        className="text-xs text-indigo-500 font-semibold flex items-center gap-1"
+        className="text-xs text-brand-500 font-semibold flex items-center gap-1"
       >
         <span>{open ? '▲' : '▼'}</span> {open ? 'Close' : 'Calculation dekhein'}
       </button>
@@ -322,7 +322,7 @@ export default function S4_ROI() {
         <div className="rounded-2xl border border-slate-200 overflow-hidden mb-4">
           <button
             onClick={() => setShowAffordability(o => !o)}
-            className="w-full px-4 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center"
+            className="w-full px-4 py-2 bg-brand-50 border-b border-slate-200 flex justify-between items-center"
           >
             <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">EMI Affordability — Business</p>
             <span className="text-slate-400 text-xs">{showAffordability ? '▲' : '▼'}</span>
@@ -404,7 +404,7 @@ export default function S4_ROI() {
         <div className="rounded-2xl border border-slate-200 overflow-hidden mb-4">
           <button
             onClick={() => setShowAffordability(o => !o)}
-            className="w-full px-4 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center"
+            className="w-full px-4 py-2 bg-brand-50 border-b border-slate-200 flex justify-between items-center"
           >
             <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">EMI Affordability — Business + Personal</p>
             <span className="text-slate-400 text-xs">{showAffordability ? '▲' : '▼'}</span>
@@ -667,7 +667,7 @@ export default function S4_ROI() {
               calc: `Total repayment ÷ monthly gain:\n₹${Math.round(roi.totalRepayment).toLocaleString('en-IN')} ÷ ${r(roi.totalMonthlyGain)}/mah = ${roi.paybackMonths.toFixed(1)} mahine`,
               result: roi.paybackMonths,
               resultDisplay: `${roi.paybackMonths.toFixed(1)} mahine`,
-              resultColor: 'text-indigo-600',
+              resultColor: 'text-brand-600',
             },
             {
               icon: '📋', head: 'Business EMI',
@@ -701,7 +701,7 @@ export default function S4_ROI() {
               <p className="text-xs text-green-500">₹{Math.round(roi.totalMonthlyGain).toLocaleString('en-IN')}/mah</p>
             </div>
           </div>
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center">
+          <div className="bg-brand-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center">
             <p className="text-sm font-semibold text-slate-600">EMI (har mahine)</p>
             <div className="text-right">
               <p className="text-lg font-extrabold text-slate-600">−{fmtINR(roi.emiAmount)}/mah</p>

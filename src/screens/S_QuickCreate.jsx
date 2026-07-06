@@ -114,12 +114,12 @@ export default function S_QuickCreate() {
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-indigo-700 text-white pt-12 pb-5 px-5 flex-shrink-0">
+      <div className="bg-brand-700 text-white pt-12 pb-5 px-5 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
             <h1 className="text-xl font-extrabold leading-tight mt-0.5">🏪 Nayi Lead Banao</h1>
-            {salesmanName && <p className="text-xs text-indigo-300 mt-0.5">👤 {salesmanName}</p>}
+            {salesmanName && <p className="text-xs text-brand-300 mt-0.5">👤 {salesmanName}</p>}
           </div>
           <button
             onClick={closeQuickCreate}
@@ -133,8 +133,8 @@ export default function S_QuickCreate() {
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-4 py-5 pb-32 space-y-3">
 
-        <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3">
-          <p className="text-xs font-semibold text-indigo-700">
+        <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-3">
+          <p className="text-xs font-semibold text-brand-700">
             ℹ️ Customer ka record turant banta hai — baaki details baad mein bhar sakte hain
           </p>
         </div>
@@ -172,7 +172,7 @@ export default function S_QuickCreate() {
                     <button
                       onClick={handleOpenExisting}
                       disabled={opening}
-                      className="w-full py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold active:scale-95 transition-all disabled:opacity-50"
+                      className="w-full py-2.5 rounded-xl bg-brand-600 text-white text-xs font-bold active:scale-95 transition-all disabled:opacity-50"
                     >
                       {opening ? 'Kholne mein...' : '👤 Open Existing Customer'}
                     </button>
@@ -205,7 +205,7 @@ export default function S_QuickCreate() {
           <button
             disabled={!canSave || saving}
             onClick={handleSave}
-            className="flex-1 py-3.5 rounded-xl bg-indigo-600 text-white text-sm font-bold disabled:opacity-40 active:scale-95 transition-all shadow-lg shadow-indigo-200"
+            className="flex-1 py-3.5 rounded-xl bg-brand-600 text-white text-sm font-bold disabled:opacity-40 active:scale-95 transition-all shadow-lg shadow-brand-200"
           >
             {saving ? 'Ban Raha Hai...' : '✅ Lead Banao →'}
           </button>

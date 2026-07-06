@@ -55,11 +55,11 @@ export default function S_SavedCustomers() {
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-indigo-700 text-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between">
+      <div className="bg-brand-700 text-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between">
         <div>
           <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
           <h1 className="text-lg font-extrabold leading-tight">Saved Customers</h1>
-          <p className="text-xs text-indigo-300 mt-0.5">{customers.length} customer{customers.length !== 1 ? 's' : ''} saved</p>
+          <p className="text-xs text-brand-300 mt-0.5">{customers.length} customer{customers.length !== 1 ? 's' : ''} saved</p>
         </div>
         <button
           onClick={closeSavedCustomers}
@@ -82,7 +82,7 @@ export default function S_SavedCustomers() {
         {/* Loading */}
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3" />
+            <div className="w-8 h-8 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin mb-3" />
             <p className="text-sm font-semibold text-slate-400">Load ho raha hai...</p>
           </div>
         ) : customers.length === 0 ? (
@@ -107,13 +107,13 @@ export default function S_SavedCustomers() {
                       )}
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-xs font-bold text-indigo-600">{fmtINR(record.inputs.loanAmount)}</p>
+                      <p className="text-xs font-bold text-brand-600">{fmtINR(record.inputs.loanAmount)}</p>
                       <p className="text-xs text-slate-400">{record.inputs.tenureMonths}M loan</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-1.5">
                     {record.inputs.businessType && (
-                      <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-semibold capitalize">
+                      <span className="text-xs bg-brand-50 text-brand-600 px-2 py-0.5 rounded-full font-semibold capitalize">
                         {record.inputs.businessType}
                       </span>
                     )}
@@ -142,7 +142,7 @@ export default function S_SavedCustomers() {
                   <div className="flex border-t border-slate-100">
                     <button
                       onClick={() => handleLoad(record)}
-                      className="flex-1 py-2.5 bg-indigo-600 text-white text-xs font-bold text-center active:scale-95 transition-all"
+                      className="flex-1 py-2.5 bg-brand-600 text-white text-xs font-bold text-center active:scale-95 transition-all"
                     >
                       📂 Load Karen
                     </button>

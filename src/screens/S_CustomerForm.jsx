@@ -94,7 +94,7 @@ const EMPTY = {
 function SectionHeader({ num, title, error }) {
   return (
     <div className="flex items-start gap-2 mb-3">
-      <span className={`flex-shrink-0 w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center ${error ? 'bg-red-500' : 'bg-indigo-600'}`}>{num}</span>
+      <span className={`flex-shrink-0 w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center ${error ? 'bg-red-500' : 'bg-brand-600'}`}>{num}</span>
       <p className={`text-sm font-bold leading-snug ${error ? 'text-red-500' : 'text-slate-800'}`}>{title}</p>
     </div>
   )
@@ -106,14 +106,14 @@ function CheckItem({ label, checked, onChange, disabled }) {
       onClick={onChange}
       disabled={disabled}
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all active:scale-[0.98] mb-1.5
-        ${checked ? 'bg-indigo-50 border-indigo-400' : 'bg-white border-slate-200'}
+        ${checked ? 'bg-brand-50 border-brand-400' : 'bg-white border-slate-200'}
         ${disabled && !checked ? 'opacity-40' : ''}`}
     >
       <div className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center
-        ${checked ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300'}`}>
+        ${checked ? 'bg-brand-600 border-brand-600' : 'border-slate-300'}`}>
         {checked && <span className="text-white text-[9px] font-bold">✓</span>}
       </div>
-      <span className={`text-sm flex-1 text-left ${checked ? 'font-semibold text-indigo-700' : 'text-slate-700'}`}>{label}</span>
+      <span className={`text-sm flex-1 text-left ${checked ? 'font-semibold text-brand-700' : 'text-slate-700'}`}>{label}</span>
     </button>
   )
 }
@@ -123,13 +123,13 @@ function RadioItem({ label, checked, onChange }) {
     <button
       onClick={onChange}
       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all active:scale-[0.98] mb-1.5
-        ${checked ? 'bg-indigo-50 border-indigo-400' : 'bg-white border-slate-200'}`}
+        ${checked ? 'bg-brand-50 border-brand-400' : 'bg-white border-slate-200'}`}
     >
       <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center
-        ${checked ? 'border-indigo-600' : 'border-slate-300'}`}>
-        {checked && <div className="w-2 h-2 rounded-full bg-indigo-600" />}
+        ${checked ? 'border-brand-600' : 'border-slate-300'}`}>
+        {checked && <div className="w-2 h-2 rounded-full bg-brand-600" />}
       </div>
-      <span className={`text-sm flex-1 text-left ${checked ? 'font-semibold text-indigo-700' : 'text-slate-700'}`}>{label}</span>
+      <span className={`text-sm flex-1 text-left ${checked ? 'font-semibold text-brand-700' : 'text-slate-700'}`}>{label}</span>
     </button>
   )
 }
@@ -141,13 +141,13 @@ function OtherInput({ value, onChange, placeholder = 'Other likho...' }) {
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-400 mt-1 mb-2"
+      className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 mt-1 mb-2"
     />
   )
 }
 
 function Card({ children }) {
-  return <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 mb-4">{children}</div>
+  return <div className="bg-brand-50 rounded-2xl border border-slate-200 p-4 mb-4">{children}</div>
 }
 
 // ── Login Gate ────────────────────────────────────────────────────────────────
@@ -157,9 +157,9 @@ function LoginGate({ onLogin, onClose }) {
   return (
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
       {/* Header */}
-      <div className="bg-indigo-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
+      <div className="bg-brand-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
         <div>
-          <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">Customer Engagement</p>
+          <p className="text-xs font-medium text-brand-300 uppercase tracking-widest">Customer Engagement</p>
           <h1 className="text-xl font-extrabold leading-tight mt-0.5">Salesman Login</h1>
         </div>
         <button onClick={onClose} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-lg leading-none">×</button>
@@ -167,7 +167,7 @@ function LoginGate({ onLogin, onClose }) {
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-16">
         {/* Icon */}
-        <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mb-5">
+        <div className="w-20 h-20 bg-brand-100 rounded-full flex items-center justify-center mb-5">
           <span className="text-4xl">👤</span>
         </div>
 
@@ -190,7 +190,7 @@ function LoginGate({ onLogin, onClose }) {
         <button
           onClick={() => name.trim() && onLogin(name)}
           disabled={!name.trim()}
-          className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl disabled:opacity-40 active:scale-95 transition-all shadow-lg shadow-indigo-200 text-base"
+          className="w-full py-4 bg-brand-600 text-white font-bold rounded-2xl disabled:opacity-40 active:scale-95 transition-all shadow-lg shadow-brand-200 text-base"
         >
           Login Karein →
         </button>
@@ -487,7 +487,7 @@ export default function S_CustomerForm() {
             <p className="text-lg font-extrabold text-slate-800">{data.shopName}</p>
             <p className="text-sm text-slate-500">{data.ownerName} · {data.city}{data.market ? ` (${data.market})` : ''} · {data.mobile}</p>
             {data.capturedAt && (
-              <p className="text-xs text-indigo-500 font-semibold">🕐 {fmtDateTime(data.capturedAt)}</p>
+              <p className="text-xs text-brand-500 font-semibold">🕐 {fmtDateTime(data.capturedAt)}</p>
             )}
           </div>
           {data.photos.length > 0 && (
@@ -529,7 +529,7 @@ export default function S_CustomerForm() {
         </div>
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] bg-white border-t border-slate-200 p-4 flex gap-3">
           <button onClick={reset} className="flex-1 py-3 rounded-xl border border-slate-300 text-sm font-semibold text-slate-600">Naya Form</button>
-          <button onClick={closeCustomerForm} className="flex-1 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold">Done</button>
+          <button onClick={closeCustomerForm} className="flex-1 py-3 rounded-xl bg-brand-600 text-white text-sm font-bold">Done</button>
         </div>
       </div>
     )
@@ -540,13 +540,13 @@ export default function S_CustomerForm() {
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-indigo-700 text-white pt-12 pb-4 px-5 flex-shrink-0">
+      <div className="bg-brand-700 text-white pt-12 pb-4 px-5 flex-shrink-0">
         <div className="flex items-center justify-between mb-1">
           <div>
-            <p className="text-xs font-medium text-indigo-300 uppercase tracking-widest">Customer Engagement</p>
+            <p className="text-xs font-medium text-brand-300 uppercase tracking-widest">Customer Engagement</p>
             <h1 className="text-xl font-extrabold leading-tight">{STEPS[step].icon} {STEPS[step].label}</h1>
             {(activeCustomer?.shopName || data.shopName) && (
-              <p className="text-xs text-indigo-200 font-semibold mt-0.5 truncate">
+              <p className="text-xs text-brand-200 font-semibold mt-0.5 truncate">
                 🏪 {activeCustomer?.shopName || data.shopName}
               </p>
             )}
@@ -578,7 +578,7 @@ export default function S_CustomerForm() {
                 <div className={`h-1.5 rounded-full transition-all ${done ? 'bg-green-400' : active ? 'bg-white' : 'bg-white/30'}`} />
                 <div className="flex items-center gap-1 mt-1">
                   {done && <span className="text-green-400 text-[10px] font-bold">✓</span>}
-                  <p className={`text-[10px] font-medium truncate ${active ? 'text-white' : done ? 'text-green-300' : 'text-indigo-300'}`}>{s.label}</p>
+                  <p className={`text-[10px] font-medium truncate ${active ? 'text-white' : done ? 'text-green-300' : 'text-brand-300'}`}>{s.label}</p>
                 </div>
               </button>
             )
@@ -648,7 +648,7 @@ export default function S_CustomerForm() {
                       key={bt.label}
                       onClick={() => toggleArr('bizTypes', bt.label)}
                       className={`py-2.5 px-2 rounded-xl text-xs font-semibold text-left border-2 transition-all active:scale-95
-                        ${checked ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-700'}`}
+                        ${checked ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700'}`}
                     >
                       {bt.emoji} {bt.label}
                     </button>
@@ -660,7 +660,7 @@ export default function S_CustomerForm() {
                     if (data.bizTypes.includes('__other__')) set('bizTypeOther', '')
                   }}
                   className={`py-2.5 px-2 rounded-xl text-xs font-semibold text-left border-2 transition-all active:scale-95
-                    ${data.bizTypes.includes('__other__') ? 'border-indigo-400 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-700'}`}
+                    ${data.bizTypes.includes('__other__') ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-700'}`}
                 >
                   ✏️ Other
                 </button>
@@ -690,7 +690,7 @@ export default function S_CustomerForm() {
                       key={m}
                       onClick={() => toggleArr('peakMonths', m)}
                       className={`py-2 rounded-xl text-xs font-semibold border-2 transition-all active:scale-95
-                        ${checked ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-700'}`}
+                        ${checked ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-slate-200 text-slate-700'}`}
                     >
                       {m}
                     </button>
@@ -770,9 +770,9 @@ export default function S_CustomerForm() {
           <div className="space-y-4">
 
             {/* Date/time stamp */}
-            <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
+            <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
               <span className="text-sm">🕐</span>
-              <p className="text-xs font-semibold text-indigo-700">{fmtDateTime(data.capturedAt)}</p>
+              <p className="text-xs font-semibold text-brand-700">{fmtDateTime(data.capturedAt)}</p>
             </div>
 
             {/* Progress */}
@@ -792,10 +792,10 @@ export default function S_CustomerForm() {
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => cameraRef.current.click()}
-                className="bg-white border-2 border-dashed border-indigo-300 rounded-2xl py-6 flex flex-col items-center gap-2 active:scale-95 transition-all"
+                className="bg-white border-2 border-dashed border-brand-300 rounded-2xl py-6 flex flex-col items-center gap-2 active:scale-95 transition-all"
               >
                 <span className="text-3xl">📷</span>
-                <p className="text-xs font-bold text-indigo-700">Camera se lo</p>
+                <p className="text-xs font-bold text-brand-700">Camera se lo</p>
               </button>
               <button
                 onClick={() => galleryRef.current.click()}
@@ -871,7 +871,7 @@ export default function S_CustomerForm() {
             </button>
           )}
           {step < 2 ? (
-            <button onClick={handleNext} disabled={checkingMobile} className="flex-1 py-3.5 rounded-xl bg-indigo-600 text-white text-sm font-bold active:scale-95 transition-all disabled:opacity-50">
+            <button onClick={handleNext} disabled={checkingMobile} className="flex-1 py-3.5 rounded-xl bg-brand-600 text-white text-sm font-bold active:scale-95 transition-all disabled:opacity-50">
               {checkingMobile ? 'Checking...' : 'Aage →'}
             </button>
           ) : (

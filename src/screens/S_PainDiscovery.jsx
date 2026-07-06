@@ -280,7 +280,7 @@ export default function S_PainDiscovery() {
   if (!customerId) {
     return (
       <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
-        <div className="bg-indigo-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
+        <div className="bg-brand-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
           <div>
             <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
             <h1 className="text-lg font-extrabold leading-tight">🔍 Pain Discovery</h1>
@@ -293,7 +293,7 @@ export default function S_PainDiscovery() {
           <p className="text-sm text-slate-500 text-center leading-relaxed">Pain Discovery karne se pehle ek active customer hona zaroori hai</p>
           <button
             onClick={() => { closePainDiscovery(); openQuickCreate() }}
-            className="w-full max-w-xs py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all"
+            className="w-full max-w-xs py-4 bg-brand-600 text-white font-bold rounded-2xl shadow-lg shadow-brand-200 active:scale-95 transition-all"
           >
             🏪 Customer Banao →
           </button>
@@ -306,12 +306,12 @@ export default function S_PainDiscovery() {
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-indigo-700 text-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between">
+      <div className="bg-brand-700 text-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between">
         <div>
           <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
           <h1 className="text-lg font-extrabold leading-tight">🔍 Pain Discovery</h1>
-          <p className="text-xs text-indigo-200 font-semibold truncate mt-0.5">🏪 {activeCustomer?.shopName || ''}</p>
-          <p className="text-xs text-indigo-300 mt-0.5">{totalDone} / {QUESTIONS.length} questions done</p>
+          <p className="text-xs text-brand-200 font-semibold truncate mt-0.5">🏪 {activeCustomer?.shopName || ''}</p>
+          <p className="text-xs text-brand-300 mt-0.5">{totalDone} / {QUESTIONS.length} questions done</p>
         </div>
         <button
           onClick={closePainDiscovery}
@@ -322,7 +322,7 @@ export default function S_PainDiscovery() {
       </div>
 
       {/* Progress bar */}
-      <div className="h-1 bg-indigo-900/30 flex-shrink-0">
+      <div className="h-1 bg-brand-900/30 flex-shrink-0">
         <div
           className="h-full bg-white transition-all duration-500"
           style={{ width: `${(totalDone / QUESTIONS.length) * 100}%` }}
@@ -339,16 +339,16 @@ export default function S_PainDiscovery() {
           return (
             <div
               key={q.num}
-              className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all ${isDone ? 'border-indigo-200' : 'border-slate-100'}`}
+              className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all ${isDone ? 'border-brand-200' : 'border-slate-100'}`}
             >
               {/* Question header */}
-              <div className={`px-4 py-3 flex items-start gap-3 ${isDone ? 'bg-indigo-50' : ''}`}>
+              <div className={`px-4 py-3 flex items-start gap-3 ${isDone ? 'bg-brand-50' : ''}`}>
                 <span className={`flex-shrink-0 w-7 h-7 rounded-full text-xs font-extrabold flex items-center justify-center mt-0.5
-                  ${isDone ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  ${isDone ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
                   {isDone ? '✓' : q.num}
                 </span>
                 <div className="flex-1">
-                  <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-1">{q.title}</p>
+                  <p className="text-xs font-bold text-brand-500 uppercase tracking-widest mb-1">{q.title}</p>
                   <p className="text-sm font-semibold text-slate-800 leading-relaxed">{q.main}</p>
                   {q.alt && (
                     <p className="text-xs text-slate-500 italic mt-1.5 leading-relaxed">{q.alt}</p>
@@ -370,7 +370,7 @@ export default function S_PainDiscovery() {
                   <select
                     value={inputs.problems[0] || ''}
                     onChange={e => update('problems', e.target.value ? [e.target.value] : [])}
-                    className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 bg-white"
+                    className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-brand-400 bg-white"
                   >
                     <option value="">— Problem chunein —</option>
                     {PROBLEMS.map(p => (
@@ -384,7 +384,7 @@ export default function S_PainDiscovery() {
                       value={q1Other}
                       onChange={e => setQ1Other(e.target.value)}
                       placeholder="Problem likho..."
-                      className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-400"
+                      className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400"
                     />
                   )}
                 </div>
@@ -397,16 +397,16 @@ export default function S_PainDiscovery() {
                     const selected  = inputs.problems.includes(p.tag)
                     const expanded  = expandedTag === p.tag
                     return (
-                      <div key={p.tag} className={`rounded-xl border-2 overflow-hidden transition-all ${selected ? 'border-indigo-400' : 'border-slate-200'}`}>
+                      <div key={p.tag} className={`rounded-xl border-2 overflow-hidden transition-all ${selected ? 'border-brand-400' : 'border-slate-200'}`}>
                         {/* Category row */}
                         <button
                           onClick={() => handleCategory(p)}
                           className={`w-full text-left flex items-center gap-3 px-3 py-2.5 transition-all active:scale-[0.98]
-                            ${selected ? 'bg-indigo-50' : 'bg-white'}`}
+                            ${selected ? 'bg-brand-50' : 'bg-white'}`}
                         >
                           <span className="text-lg">{p.emoji}</span>
                           <div className="flex-1">
-                            <p className={`text-xs font-bold ${selected ? 'text-indigo-700' : 'text-slate-700'}`}>{p.title}</p>
+                            <p className={`text-xs font-bold ${selected ? 'text-brand-700' : 'text-slate-700'}`}>{p.title}</p>
                             <p className="text-xs text-slate-400">{p.sub}</p>
                           </div>
                           <span className="text-slate-400 text-sm">{expanded ? '▲' : '▼'}</span>
@@ -414,20 +414,20 @@ export default function S_PainDiscovery() {
 
                         {/* Sub-problems + questions */}
                         {expanded && p.subProblems.length > 0 && (
-                          <div className="border-t border-slate-100 bg-slate-50 px-3 py-2 space-y-2">
+                          <div className="border-t border-slate-100 bg-brand-50 px-3 py-2 space-y-2">
                             {p.subProblems.map(sp => {
                               const subSelected = inputs.subProblems.includes(sp.tag)
                               const qs = SUB_QUESTIONS[sp.tag] || []
                               return (
-                                <div key={sp.tag} className={`rounded-xl border overflow-hidden transition-all ${subSelected ? 'border-indigo-300' : 'border-slate-200'}`}>
+                                <div key={sp.tag} className={`rounded-xl border overflow-hidden transition-all ${subSelected ? 'border-brand-300' : 'border-slate-200'}`}>
                                   {/* Sub-problem toggle */}
                                   <button
                                     onClick={() => toggleSubProblem(p.tag, sp.tag)}
                                     className={`w-full text-left flex items-center gap-2.5 px-3 py-2.5 transition-all active:scale-[0.98]
-                                      ${subSelected ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-slate-600'}`}
+                                      ${subSelected ? 'bg-brand-50 text-brand-700' : 'bg-white text-slate-600'}`}
                                   >
                                     <span className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center text-xs
-                                      ${subSelected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-slate-300'}`}>
+                                      ${subSelected ? 'border-brand-500 bg-brand-500 text-white' : 'border-slate-300'}`}>
                                       {subSelected && '✓'}
                                     </span>
                                     <span className="text-xs font-semibold flex-1">{sp.label}</span>
@@ -435,11 +435,11 @@ export default function S_PainDiscovery() {
 
                                   {/* Questions shown when sub-problem selected */}
                                   {subSelected && qs.length > 0 && (
-                                    <div className="bg-indigo-50 border-t border-indigo-100 px-3 py-2 space-y-1.5">
+                                    <div className="bg-brand-50 border-t border-brand-100 px-3 py-2 space-y-1.5">
                                       {qs.map((q, i) => (
                                         <div key={i} className="flex gap-2 items-start">
-                                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
-                                          <p className="text-xs text-indigo-800 leading-relaxed">{q}</p>
+                                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-100 text-brand-600 text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
+                                          <p className="text-xs text-brand-800 leading-relaxed">{q}</p>
                                         </div>
                                       ))}
                                     </div>
@@ -452,11 +452,11 @@ export default function S_PainDiscovery() {
 
                         {/* Repair — no sub-problems, show questions directly when selected */}
                         {expanded && p.subProblems.length === 0 && (
-                          <div className="border-t border-slate-100 bg-indigo-50 px-3 py-2 space-y-1.5">
+                          <div className="border-t border-slate-100 bg-brand-50 px-3 py-2 space-y-1.5">
                             {REPAIR_QUESTIONS.map((q, i) => (
                               <div key={i} className="flex gap-2 items-start">
-                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
-                                <p className="text-xs text-indigo-800 leading-relaxed">{q}</p>
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-100 text-brand-600 text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
+                                <p className="text-xs text-brand-800 leading-relaxed">{q}</p>
                               </div>
                             ))}
                           </div>
@@ -475,7 +475,7 @@ export default function S_PainDiscovery() {
                     <select
                       value={problemYears}
                       onChange={e => setProblemYears(e.target.value)}
-                      className="flex-1 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 bg-white"
+                      className="flex-1 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-brand-400 bg-white"
                     >
                       <option value="">— Saal —</option>
                       {[0,1,2,3,4,5,6,7,8,9,10].map(n => (
@@ -485,7 +485,7 @@ export default function S_PainDiscovery() {
                     <select
                       value={problemMonths}
                       onChange={e => setProblemMonths(e.target.value)}
-                      className="flex-1 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-indigo-400 bg-white"
+                      className="flex-1 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-brand-400 bg-white"
                     >
                       <option value="">— Mahine —</option>
                       {[1,2,3,4,5,6,7,8,9,10,11].map(n => (
@@ -507,7 +507,7 @@ export default function S_PainDiscovery() {
                       key={opt.val}
                       onClick={() => setPriority(opt.val)}
                       className={`flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all active:scale-95
-                        ${priority === opt.val ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600'}`}
+                        ${priority === opt.val ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-slate-200 text-slate-600'}`}
                     >
                       {opt.label}
                     </button>
@@ -526,7 +526,7 @@ export default function S_PainDiscovery() {
                       key={opt.val}
                       onClick={() => setCapitalNeeded(opt.val)}
                       className={`flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all active:scale-95
-                        ${capitalNeeded === opt.val ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-600'}`}
+                        ${capitalNeeded === opt.val ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-slate-200 text-slate-600'}`}
                     >
                       {opt.label}
                     </button>
@@ -539,7 +539,7 @@ export default function S_PainDiscovery() {
                 <button
                   onClick={() => toggleChecked(q.num)}
                   className={`w-full py-2.5 text-xs font-bold border-t transition-all
-                    ${isDone ? 'border-indigo-100 text-indigo-600 bg-indigo-50' : 'border-slate-100 text-slate-400 bg-slate-50'}`}
+                    ${isDone ? 'border-brand-100 text-brand-600 bg-brand-50' : 'border-slate-100 text-slate-400 bg-brand-50'}`}
                 >
                   {isDone ? '✓ Done — Next Question' : 'Tap when answered →'}
                 </button>
@@ -552,7 +552,7 @@ export default function S_PainDiscovery() {
                   value={notesByQ[q.num] || ''}
                   onChange={e => setNote(q.num, e.target.value)}
                   placeholder="Notes / Jo customer ne kaha..."
-                  className="w-full text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-indigo-300 resize-none placeholder:text-slate-300 bg-white"
+                  className="w-full text-xs text-slate-700 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-brand-300 resize-none placeholder:text-slate-300 bg-white"
                 />
               </div>
             </div>
@@ -561,7 +561,7 @@ export default function S_PainDiscovery() {
 
         {/* Pain metrics + save */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4">
-          <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-3">📊 Nuksaan ka Hisaab</p>
+          <p className="text-xs font-bold text-brand-500 uppercase tracking-widest mb-3">📊 Nuksaan ka Hisaab</p>
 
           {!customerId && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">
@@ -601,7 +601,7 @@ export default function S_PainDiscovery() {
             <button
               onClick={savePainData}
               disabled={!customerId || saving}
-              className="mt-3 w-full py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl disabled:opacity-40 active:scale-95 transition-all"
+              className="mt-3 w-full py-3 bg-brand-600 text-white text-sm font-bold rounded-xl disabled:opacity-40 active:scale-95 transition-all"
             >
               {saving ? 'Saving...' : 'Pain Data Save Karo →'}
             </button>

@@ -101,7 +101,7 @@ const QUICK_PROMPTS = [
 function UserBubble({ text }) {
   return (
     <div className="flex justify-end mb-3">
-      <div className="bg-indigo-600 text-white text-sm rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[80%] leading-relaxed">
+      <div className="bg-brand-600 text-white text-sm rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[80%] leading-relaxed">
         {text}
       </div>
     </div>
@@ -147,7 +147,7 @@ function AssistantBubble({ guidance }) {
           </div>
 
           {/* What to say */}
-          <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+          <div className="px-4 py-3 border-b border-slate-100 bg-brand-50">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">What to say</p>
             <div className="space-y-1.5">
               {g.say.map((s, i) => (
@@ -227,11 +227,11 @@ export default function S_SalesAssistant() {
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-indigo-700 text-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between">
+      <div className="bg-brand-700 text-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between">
         <div>
           <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
           <h1 className="text-lg font-extrabold leading-tight">Sales Assistant 🤖</h1>
-          <p className="text-xs text-indigo-300 mt-0.5">Customer ki situation batao — guide karunga</p>
+          <p className="text-xs text-brand-300 mt-0.5">Customer ki situation batao — guide karunga</p>
         </div>
         <button
           onClick={closeAssistant}
@@ -274,7 +274,7 @@ export default function S_SalesAssistant() {
             <button
               key={q.label}
               onClick={() => handleQuickPrompt(q)}
-              className="flex-shrink-0 text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-3 py-1.5 active:scale-95 transition-all"
+              className="flex-shrink-0 text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200 rounded-full px-3 py-1.5 active:scale-95 transition-all"
             >
               {q.label}
             </button>
@@ -289,12 +289,12 @@ export default function S_SalesAssistant() {
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}
             placeholder="Customer ka reaction likho..."
-            className="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-400"
+            className="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-400"
           />
           <button
             onClick={() => handleSend()}
             disabled={!input.trim()}
-            className="bg-indigo-600 text-white rounded-xl px-4 py-2.5 text-sm font-bold disabled:opacity-40 active:scale-95 transition-all"
+            className="bg-brand-600 text-white rounded-xl px-4 py-2.5 text-sm font-bold disabled:opacity-40 active:scale-95 transition-all"
           >
             ↑
           </button>

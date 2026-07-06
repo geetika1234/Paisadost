@@ -15,20 +15,20 @@ export default function LoanCustomizeCard() {
   const done = inputs.loanAmount > 0 && inputs.tenureMonths > 0
 
   return (
-    <div className={`bg-white rounded-2xl border shadow-sm mb-3 overflow-hidden ${done ? 'border-indigo-200' : 'border-slate-100'}`}>
+    <div className={`bg-white rounded-2xl border shadow-sm mb-3 overflow-hidden ${done ? 'border-brand-200' : 'border-slate-100'}`}>
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
         <div className="flex items-center gap-2">
           <span className="text-xl">🎛️</span>
-          <span className={`text-sm font-bold ${done ? 'text-indigo-700' : 'text-slate-700'}`}>Loan Customize Karo</span>
+          <span className={`text-sm font-bold ${done ? 'text-brand-700' : 'text-slate-700'}`}>Loan Customize Karo</span>
           {done && (
-            <span className="text-xs bg-indigo-100 text-brand px-2 py-0.5 rounded-full font-semibold">
+            <span className="text-xs bg-brand-100 text-brand-600 px-2 py-0.5 rounded-full font-semibold">
               {fmtINR(inputs.loanAmount)} · {inputs.tenureMonths}M
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {done && (
-            <span className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold leading-none">✓</span>
+            <span className="w-5 h-5 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold leading-none">✓</span>
           )}
           <span className="text-slate-400 text-sm">{open ? '▲' : '▼'}</span>
         </div>
@@ -48,7 +48,7 @@ export default function LoanCustomizeCard() {
           <div className="mb-5">
             <div className="flex justify-between items-baseline mb-2">
               <span className="text-sm font-medium text-slate-600">Kitne Mahine Mein Bharoge?</span>
-              <span className="text-lg font-bold text-brand">{inputs.tenureMonths} mahine</span>
+              <span className="text-lg font-bold text-brand-600">{inputs.tenureMonths} mahine</span>
             </div>
             <div className="grid grid-cols-4 gap-1.5">
               {TENURE_OPTIONS.map(t => (
@@ -57,7 +57,7 @@ export default function LoanCustomizeCard() {
                   onClick={() => update('tenureMonths', t)}
                   className={`py-2 rounded-xl text-xs font-bold border-2 transition-all
                     ${inputs.tenureMonths === t
-                      ? 'border-brand bg-indigo-50 text-brand'
+                      ? 'border-brand-600 bg-brand-50 text-brand-600'
                       : 'border-slate-200 text-slate-500 bg-white'}`}
                 >
                   {t}M
@@ -79,7 +79,7 @@ export default function LoanCustomizeCard() {
           <div className="mb-5">
             <div className="flex justify-between items-baseline mb-1">
               <span className="text-sm font-medium text-slate-600">Loan Kitna Business Ke Liye?</span>
-              <span className="text-lg font-bold text-brand">{bizPct}%</span>
+              <span className="text-lg font-bold text-brand-600">{bizPct}%</span>
             </div>
             <div className="relative">
               <input

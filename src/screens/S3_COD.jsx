@@ -82,7 +82,7 @@ const COMPONENTS = [
 function DrawerItem({ item, valueColor, sign = '' }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="bg-slate-50 rounded-xl p-3">
+    <div className="bg-brand-50 rounded-xl p-3">
       <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-center gap-2">
           <span className="text-lg">{item.icon}</span>
@@ -93,7 +93,7 @@ function DrawerItem({ item, valueColor, sign = '' }) {
       <p className="text-xs text-slate-500 mb-1.5">{item.body}</p>
       <button
         onClick={() => setOpen(o => !o)}
-        className="text-xs text-indigo-500 font-semibold flex items-center gap-1"
+        className="text-xs text-brand-500 font-semibold flex items-center gap-1"
       >
         <span>{open ? '▲' : '▼'}</span> {open ? 'Close' : 'Calculation dekhein'}
       </button>

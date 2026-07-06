@@ -60,26 +60,26 @@ export default function S7_Offer() {
       onCta={handleShare}
     >
       {/* Offer card */}
-      <div className="bg-gradient-to-br from-brand to-indigo-700 rounded-3xl p-5 text-white mb-5 shadow-xl">
-        <p className="text-xs font-bold text-indigo-200 uppercase tracking-widest mb-3">
+      <div className="bg-gradient-to-br from-brand-600 to-brand-700 rounded-3xl p-5 text-white mb-5 shadow-xl">
+        <p className="text-xs font-bold text-brand-200 uppercase tracking-widest mb-3">
           🎯 Recommended Offer — {businessLabel}
         </p>
 
         <div className="mb-4">
-          <p className="text-sm text-indigo-200">Loan Amount</p>
+          <p className="text-sm text-brand-200">Loan Amount</p>
           <p className="text-5xl font-extrabold">{fmtINR(rec.recLoan)}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white/15 rounded-2xl p-3">
-            <p className="text-xs text-indigo-200 mb-1">Monthly EMI</p>
+            <p className="text-xs text-brand-200 mb-1">Monthly EMI</p>
             <p className="text-2xl font-extrabold">{fmtINR(rec.recEMI)}</p>
-            <p className="text-xs text-indigo-300">= {fmtINR(rec.recEMI / 30)}/din</p>
+            <p className="text-xs text-brand-300">= {fmtINR(rec.recEMI / 30)}/din</p>
           </div>
           <div className="bg-white/15 rounded-2xl p-3">
-            <p className="text-xs text-indigo-200 mb-1">Tenure</p>
+            <p className="text-xs text-brand-200 mb-1">Tenure</p>
             <p className="text-2xl font-extrabold">{rec.recTenure} mah</p>
-            <p className="text-xs text-indigo-300">@ {inputs.interestRate}% yearly</p>
+            <p className="text-xs text-brand-300">@ {inputs.interestRate}% yearly</p>
           </div>
         </div>
       </div>
@@ -102,8 +102,8 @@ export default function S7_Offer() {
         </div>
         <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm text-center">
           <p className="text-xs text-slate-500 font-medium mb-1">Loan Wapas</p>
-          <p className="text-2xl font-extrabold text-brand">{roi.paybackMonths.toFixed(0)} mah</p>
-          <p className="text-xs text-brand font-medium">mein seedha</p>
+          <p className="text-2xl font-extrabold text-brand-600">{roi.paybackMonths.toFixed(0)} mah</p>
+          <p className="text-xs text-brand-600 font-medium">mein seedha</p>
         </div>
       </div>
 
@@ -133,8 +133,8 @@ export default function S7_Offer() {
       </div>
 
       {/* Why this amount */}
-      <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-100 mb-5">
-        <p className="text-sm font-bold text-brand mb-2">🤔 Yeh Amount Kyun?</p>
+      <div className="bg-brand-50 rounded-2xl p-4 border border-brand-100 mb-5">
+        <p className="text-sm font-bold text-brand-600 mb-2">🤔 Yeh Amount Kyun?</p>
         <ul className="space-y-1.5">
           <li className="text-xs text-slate-600">
             ✓ Aapki monthly bikri ka 3× = {fmtINR(inputs.monthlySales * 3)} tak mil sakta tha
@@ -145,7 +145,7 @@ export default function S7_Offer() {
           <li className="text-xs text-slate-600">
             ✓ Aapne {fmtINR(inputs.loanAmount)} maanga
           </li>
-          <li className="text-xs font-semibold text-brand mt-2">
+          <li className="text-xs font-semibold text-brand-600 mt-2">
             → Best fit: {fmtINR(rec.recLoan)} (comfortable + profitable)
           </li>
         </ul>

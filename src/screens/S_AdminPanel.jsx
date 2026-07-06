@@ -7,7 +7,7 @@ const ROLES = ['sales', 'manager', 'admin']
 const ROLE_LABEL = { sales: '👤 Sales', manager: '🧑‍💼 Manager', admin: '👑 Admin' }
 
 const STAGE_LABEL = {
-  visited:         { label: 'Visited',    cls: 'bg-indigo-100 text-indigo-700'  },
+  visited:         { label: 'Visited',    cls: 'bg-brand-100 text-brand-700'  },
   pain_identified: { label: 'Pain Done',  cls: 'bg-purple-100 text-purple-700'  },
   roi_shown:       { label: 'ROI Shown',  cls: 'bg-blue-100 text-blue-700'      },
   login_started:   { label: 'Login Done', cls: 'bg-green-100 text-green-700'    },
@@ -77,7 +77,7 @@ export default function S_AdminPanel() {
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-indigo-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
+      <div className="bg-brand-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
         <div>
           <img
             src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
@@ -105,7 +105,7 @@ export default function S_AdminPanel() {
             key={key}
             onClick={() => setTab(key)}
             className={`flex-1 py-3 text-sm font-bold border-b-2 transition-all
-              ${tab === key ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}
+              ${tab === key ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-400'}`}
           >
             {label}
           </button>
@@ -123,7 +123,7 @@ export default function S_AdminPanel() {
 
         {loading && (
           <div className="flex items-center justify-center gap-2 py-8">
-            <div className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
             <p className="text-xs font-semibold text-slate-400">Load ho raha hai...</p>
           </div>
         )}
@@ -142,7 +142,7 @@ export default function S_AdminPanel() {
           <>
             {leadsLoading && (
               <div className="flex items-center justify-center gap-2 py-8">
-                <div className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
                 <p className="text-xs font-semibold text-slate-400">Load ho raha hai...</p>
               </div>
             )}
@@ -162,7 +162,7 @@ export default function S_AdminPanel() {
                 <div key={lead.customer_id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                   {/* Lead info row */}
                   <div className="px-4 py-3 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-extrabold text-indigo-600 flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-sm font-extrabold text-brand-600 flex-shrink-0">
                       {(lead.shop_name || '?').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -184,13 +184,13 @@ export default function S_AdminPanel() {
                   <div className="border-t border-slate-100 px-4 py-2 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="text-[10px] font-bold text-slate-400 flex-shrink-0">Assigned:</span>
-                      <span className={`text-[11px] font-bold truncate ${assignee ? 'text-indigo-600' : 'text-slate-400'}`}>
+                      <span className={`text-[11px] font-bold truncate ${assignee ? 'text-brand-600' : 'text-slate-400'}`}>
                         {assignee ? assignee.fullname : '— Unassigned'}
                       </span>
                     </div>
                     <button
                       onClick={() => setExpandedLead(isExpanded ? null : lead.customer_id)}
-                      className="flex-shrink-0 text-xs font-bold text-indigo-600 border border-indigo-200 bg-indigo-50 rounded-lg px-3 py-1.5 active:scale-95 transition-all"
+                      className="flex-shrink-0 text-xs font-bold text-brand-600 border border-brand-200 bg-brand-50 rounded-lg px-3 py-1.5 active:scale-95 transition-all"
                     >
                       {isExpanded ? 'Cancel' : 'Assign →'}
                     </button>
@@ -202,7 +202,7 @@ export default function S_AdminPanel() {
                       <select
                         defaultValue={lead.assigned_to || ''}
                         onChange={e => handleAssign(lead.customer_id, e.target.value || null)}
-                        className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 bg-white outline-none focus:border-indigo-400 appearance-none"
+                        className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 bg-white outline-none focus:border-brand-400 appearance-none"
                       >
                         <option value=''>Choose Assignee</option>
                         {approved.map(p => (
@@ -222,14 +222,14 @@ export default function S_AdminPanel() {
 
             {/* Identity row */}
             <div className="px-4 py-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-extrabold text-indigo-600 flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-sm font-extrabold text-brand-600 flex-shrink-0">
                 {(p.fullname || '?').charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-extrabold text-slate-800 truncate">
                   {p.fullname}
                   {p.id === myProfile?.id && (
-                    <span className="ml-2 text-[10px] font-bold text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded-full">You</span>
+                    <span className="ml-2 text-[10px] font-bold text-brand-500 bg-brand-50 px-1.5 py-0.5 rounded-full">You</span>
                   )}
                 </p>
                 <p className="text-xs text-slate-400">📞 {p.mobile}</p>
@@ -260,7 +260,7 @@ export default function S_AdminPanel() {
                       className={`text-[11px] font-bold px-2.5 py-1 rounded-full border transition-all
                         disabled:opacity-60 disabled:cursor-not-allowed
                         ${p.role === r
-                          ? 'bg-indigo-600 border-indigo-600 text-white'
+                          ? 'bg-brand-600 border-brand-600 text-white'
                           : 'bg-white border-slate-200 text-slate-500 active:scale-95'}`}
                     >
                       {ROLE_LABEL[r]}

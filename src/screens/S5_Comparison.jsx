@@ -43,9 +43,9 @@ export default function S5_Comparison() {
       onCta={next}
     >
       {/* Period label — makes the apples-to-apples clear */}
-      <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2.5 mb-4 flex items-center gap-2">
+      <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-2.5 mb-4 flex items-center gap-2">
         <span className="text-base">📅</span>
-        <p className="text-sm font-semibold text-brand">
+        <p className="text-sm font-semibold text-brand-600">
           Dono side <span className="underline">{n} mahine</span> ke liye dikha rahe hain — fair comparison
         </p>
       </div>
@@ -107,9 +107,9 @@ export default function S5_Comparison() {
 
       {/* EMI anchor */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-4 flex items-center gap-4">
-        <div className="text-center bg-brand/10 rounded-xl p-3 flex-shrink-0">
-          <p className="text-2xl font-extrabold text-brand">{fmtINR(roi.dailyEMI)}</p>
-          <p className="text-xs font-bold text-brand/70">ROZ KI EMI</p>
+        <div className="text-center bg-brand-600/10 rounded-xl p-3 flex-shrink-0">
+          <p className="text-2xl font-extrabold text-brand-600">{fmtINR(roi.dailyEMI)}</p>
+          <p className="text-xs font-bold text-brand-600/70">ROZ KI EMI</p>
         </div>
         <div>
           <p className="text-sm font-bold text-slate-700">Roz ka kharch — chai se bhi kam!</p>
@@ -123,8 +123,8 @@ export default function S5_Comparison() {
       </div>
 
       {/* Insight */}
-      <div className="bg-indigo-50 rounded-xl p-3 border border-indigo-200">
-        <p className="text-sm font-semibold text-brand">{insight}</p>
+      <div className="bg-brand-50 rounded-xl p-3 border border-brand-200">
+        <p className="text-sm font-semibold text-brand-600">{insight}</p>
       </div>
     </ScreenShell>
   )

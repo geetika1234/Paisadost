@@ -19,7 +19,7 @@ export default function RangeSlider({ label, value, min, max, step = 1, onChange
     <div className="mb-5">
       <div className="flex justify-between items-baseline mb-1">
         <span className="text-sm font-medium text-slate-600">{label}</span>
-        <span className="text-lg font-bold text-brand">{display(value)}</span>
+        <span className="text-lg font-bold text-brand-600">{display(value)}</span>
       </div>
       {hint && <p className="text-xs text-slate-400 mb-1">{hint}</p>}
       <div className="relative">

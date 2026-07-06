@@ -9,7 +9,7 @@ const SUB_LABEL = {}
 PROBLEMS.forEach(p => p.subProblems.forEach(sp => { SUB_LABEL[sp.tag] = sp.label }))
 
 const STAGE_LABEL = {
-  visited:         { label: 'Visited',    color: 'bg-indigo-100 text-indigo-700'   },
+  visited:         { label: 'Visited',    color: 'bg-brand-100 text-brand-700'   },
   pain_identified: { label: 'Pain Done',  color: 'bg-purple-100 text-purple-700'   },
   roi_shown:       { label: 'ROI Shown',  color: 'bg-blue-100 text-blue-700'       },
   login_started:   { label: 'Login Done', color: 'bg-green-100 text-green-700'     },
@@ -88,9 +88,9 @@ export default function S_Workspace() {
 
   if (!activeCustomer) {
     return (
-      <div className="phone-shell flex flex-col items-center justify-center bg-slate-50" style={{ minHeight: '100dvh' }}>
+      <div className="phone-shell flex flex-col items-center justify-center bg-brand-50" style={{ minHeight: '100dvh' }}>
         <p className="text-slate-400 text-sm">Koi active customer nahi.</p>
-        <button onClick={() => setMainScreen('home')} className="mt-4 text-indigo-600 font-bold text-sm">
+        <button onClick={() => setMainScreen('home')} className="mt-4 text-brand-600 font-bold text-sm">
           ← Home Pe Jao
         </button>
       </div>
@@ -200,31 +200,31 @@ export default function S_Workspace() {
   }
 
   return (
-    <div className="phone-shell flex flex-col bg-slate-50" style={{ minHeight: '100dvh' }}>
+    <div className="phone-shell flex flex-col bg-brand-50" style={{ minHeight: '100dvh' }}>
 
       {/* Header */}
-      <div className="bg-indigo-700 text-white pt-12 pb-5 px-5 flex-shrink-0">
+      <div className="bg-brand-700 text-white pt-12 pb-5 px-5 flex-shrink-0">
         <button
           onClick={() => setMainScreen('home')}
-          className="text-indigo-300 text-xs font-semibold mb-3 flex items-center gap-1"
+          className="text-brand-300 text-xs font-semibold mb-3 flex items-center gap-1"
         >
           ← Home
         </button>
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500 flex items-center justify-center text-xl font-extrabold text-white flex-shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-brand-500 flex items-center justify-center text-xl font-extrabold text-white flex-shrink-0">
             {initial}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-lg font-extrabold leading-tight truncate">{activeCustomer.shopName}</p>
             {activeCustomer.ownerName && (
-              <p className="text-xs text-indigo-300 truncate">{activeCustomer.ownerName}</p>
+              <p className="text-xs text-brand-300 truncate">{activeCustomer.ownerName}</p>
             )}
             <div className="flex items-center gap-2 mt-1">
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stage.color}`}>
                 {stage.label}
               </span>
               {activeCustomer.city && (
-                <span className="text-[10px] text-indigo-300">{activeCustomer.city}</span>
+                <span className="text-[10px] text-brand-300">{activeCustomer.city}</span>
               )}
             </div>
           </div>
@@ -276,7 +276,7 @@ export default function S_Workspace() {
         <button
           onClick={() => setMainScreen('roi')}
           className={`w-full rounded-2xl px-4 py-4 flex items-center gap-4 shadow-lg active:scale-[0.98] transition-all text-left border
-            ${roiDone ? 'bg-green-50 border-green-200 shadow-green-100' : 'bg-indigo-600 border-indigo-600 shadow-indigo-200'}`}
+            ${roiDone ? 'bg-green-50 border-green-200 shadow-green-100' : 'bg-brand-600 border-brand-600 shadow-brand-200'}`}
         >
           <span className="text-2xl flex-shrink-0">{roiDone ? '✅' : '📊'}</span>
           <div className="flex-1">
@@ -284,18 +284,18 @@ export default function S_Workspace() {
               ROI / COD Calculator
               {roiDone && <span className="ml-2 text-[10px] font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded-full">Done ✓</span>}
             </p>
-            <p className={`text-xs mt-0.5 ${roiDone ? 'text-green-600' : 'text-indigo-200'}`}>
+            <p className={`text-xs mt-0.5 ${roiDone ? 'text-green-600' : 'text-brand-200'}`}>
               {roiDone ? 'ROI dikhaya ja chuka hai — tap to redo' : 'Loan ka faida dikhao'}
             </p>
           </div>
-          <span className={`text-lg flex-shrink-0 ${roiDone ? 'text-slate-300' : 'text-indigo-300'}`}>›</span>
+          <span className={`text-lg flex-shrink-0 ${roiDone ? 'text-slate-300' : 'text-brand-300'}`}>›</span>
         </button>
 
         {/* ── Top Insights ──────────────────────────────────────────────── */}
         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1 pt-2">Customer Insights</p>
 
         <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm space-y-2">
-          <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-1">⚡ Top Insights</p>
+          <p className="text-[10px] font-bold text-brand-500 uppercase tracking-widest mb-1">⚡ Top Insights</p>
 
           <Row label="Problem"  value={primaryProblemLabel} />
           <Row label="Urgency"  value={urgencyLabel} valueClass={pain.priority === 'abhi' ? 'text-red-600' : 'text-amber-600'} />
@@ -397,7 +397,7 @@ export default function S_Workspace() {
 
         {/* ── Customer Response ────────────────────────────────────────────── */}
         <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
-          <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-2">💬 Customer Response</p>
+          <p className="text-[10px] font-bold text-brand-500 uppercase tracking-widest mb-2">💬 Customer Response</p>
           <select
             value={response || ''}
             onChange={e => handleResponse(e.target.value || null)}
@@ -422,13 +422,13 @@ export default function S_Workspace() {
         <div className="flex gap-3">
           <button
             onClick={openDashboard}
-            className="flex-1 py-3 rounded-xl border border-indigo-200 text-indigo-600 text-sm font-bold active:bg-indigo-50 transition-all"
+            className="flex-1 py-3 rounded-xl border border-brand-200 text-brand-600 text-sm font-bold active:bg-brand-50 transition-all"
           >
             🔄 Lead Badlo
           </button>
           <button
             onClick={() => { clearActiveCustomer(); openQuickCreate() }}
-            className="flex-1 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold active:scale-95 transition-all shadow-lg shadow-indigo-200"
+            className="flex-1 py-3 rounded-xl bg-brand-600 text-white text-sm font-bold active:scale-95 transition-all shadow-lg shadow-brand-200"
           >
             + Nayi Lead
           </button>

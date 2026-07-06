@@ -6,15 +6,15 @@ export default function ScreenShell({ title, subtitle, step, total, onBack, chil
   const progress = ((step) / total) * 100
 
   const ctaBg = {
-    brand: 'bg-brand',
+    brand: 'bg-brand-600',
     red:   'bg-loss',
     green: 'bg-gain',
-  }[ctaColor] ?? 'bg-brand'
+  }[ctaColor] ?? 'bg-brand-600'
 
   return (
     <div className="phone-shell flex flex-col" style={{ minHeight: '100dvh' }}>
       {/* Header */}
-      <div className="bg-brand text-white pt-12 pb-4 px-5 flex-shrink-0">
+      <div className="bg-brand-600 text-white pt-12 pb-4 px-5 flex-shrink-0">
         <div className="flex items-center gap-3 mb-3">
           {onBack && (
             <button onClick={onBack} className="text-white/70 text-xl leading-none">←</button>
@@ -26,14 +26,14 @@ export default function ScreenShell({ title, subtitle, step, total, onBack, chil
                 alt="Ar Financier's"
                 className="h-5 w-auto object-contain"
               />
-              <span className="text-xs font-medium text-indigo-200 uppercase tracking-widest">· Step {step + 1}/{total}</span>
+              <span className="text-xs font-medium text-brand-200 uppercase tracking-widest">· Step {step + 1}/{total}</span>
             </div>
             <h1 className="text-xl font-extrabold leading-tight mt-0.5">{title}</h1>
-            {subtitle && <p className="text-sm text-indigo-200 mt-0.5">{subtitle}</p>}
+            {subtitle && <p className="text-sm text-brand-200 mt-0.5">{subtitle}</p>}
           </div>
         </div>
         {/* Progress */}
-        <div className="h-1.5 bg-indigo-900/40 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-brand-900/40 rounded-full overflow-hidden">
           <div
             className="h-full bg-white rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
@@ -53,7 +53,7 @@ export default function ScreenShell({ title, subtitle, step, total, onBack, chil
             <button
               onClick={onSecondaryCta}
               disabled={secondaryCtaDisabled}
-              className="w-full py-3 rounded-2xl text-indigo-600 font-bold text-sm border-2 border-indigo-200 disabled:opacity-40 active:scale-95 transition-all"
+              className="w-full py-3 rounded-2xl text-brand-600 font-bold text-sm border-2 border-brand-200 disabled:opacity-40 active:scale-95 transition-all"
             >
               {secondaryCta}
             </button>

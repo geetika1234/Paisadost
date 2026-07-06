@@ -94,7 +94,7 @@ function LoginView({ onLogin, onClose }) {
   const [name, setName] = useState('')
   return (
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
-      <div className="bg-indigo-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
+      <div className="bg-brand-700 text-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between">
         <div>
           <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
           <h1 className="text-xl font-extrabold leading-tight mt-0.5">📊 Sales Dashboard</h1>
@@ -102,7 +102,7 @@ function LoginView({ onLogin, onClose }) {
         <button onClick={onClose} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white text-lg leading-none">×</button>
       </div>
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-16">
-        <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mb-5">
+        <div className="w-20 h-20 bg-brand-100 rounded-full flex items-center justify-center mb-5">
           <span className="text-4xl">👤</span>
         </div>
         <h2 className="text-xl font-extrabold text-slate-800 mb-1 text-center">Login Karein</h2>
@@ -124,7 +124,7 @@ function LoginView({ onLogin, onClose }) {
         <button
           onClick={() => name.trim() && onLogin(name)}
           disabled={!name.trim()}
-          className="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl disabled:opacity-40 active:scale-95 transition-all shadow-lg shadow-indigo-200 text-base"
+          className="w-full py-4 bg-brand-600 text-white font-bold rounded-2xl disabled:opacity-40 active:scale-95 transition-all shadow-lg shadow-brand-200 text-base"
         >
           Dashboard Kholein →
         </button>
@@ -256,7 +256,7 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman })
       {/* Identity row */}
       <div className="px-4 pt-3 pb-2 flex items-center gap-3">
         <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-extrabold
-          ${isHot ? 'bg-orange-100 text-orange-600' : customer.fileLogin ? 'bg-green-100 text-green-700' : 'bg-indigo-50 text-indigo-600'}`}>
+          ${isHot ? 'bg-orange-100 text-orange-600' : customer.fileLogin ? 'bg-green-100 text-green-700' : 'bg-brand-50 text-brand-600'}`}>
           {customer.shopName.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
@@ -275,7 +275,7 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman })
           ) : (
             <button
               onClick={() => onFileLogin(customer.id)}
-              className="bg-indigo-600 text-white text-xs font-bold rounded-xl px-3 py-2 active:scale-95 transition-all shadow-sm shadow-indigo-200"
+              className="bg-brand-600 text-white text-xs font-bold rounded-xl px-3 py-2 active:scale-95 transition-all shadow-sm shadow-brand-200"
             >
               File Login
             </button>
@@ -284,7 +284,7 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman })
       </div>
 
       {/* Key Insights — 7 points, always visible */}
-      <div className="mx-3 mb-2 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5">
+      <div className="mx-3 mb-2 bg-brand-50 border border-slate-100 rounded-xl px-3 py-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5">
         <InsightItem label="Problem"  value={primaryProblem} className="col-span-2" />
         <InsightItem label="Urgency"  value={urgencyLabel}   valueClass={urgency === 'abhi' ? 'text-red-600' : 'text-amber-600'} />
         <InsightItem label="Stage"    value={stageLabel} />
@@ -314,7 +314,7 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman })
         <button
           onClick={() => onSetActive(customer)}
           className={`px-4 py-1.5 rounded-lg text-xs font-extrabold active:scale-95 transition-all
-            ${isHot ? 'bg-orange-500 text-white shadow-sm shadow-orange-200' : 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'}`}
+            ${isHot ? 'bg-orange-500 text-white shadow-sm shadow-orange-200' : 'bg-brand-600 text-white shadow-sm shadow-brand-200'}`}
         >
           Details →
         </button>
@@ -499,8 +499,8 @@ export default function S_Dashboard() {
   if (!user) {
     if (profile?.fullname) {
       return (
-        <div className="phone-shell flex items-center justify-center bg-slate-50" style={{ minHeight: '100dvh' }}>
-          <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+        <div className="phone-shell flex items-center justify-center bg-brand-50" style={{ minHeight: '100dvh' }}>
+          <div className="w-8 h-8 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
         </div>
       )
     }
@@ -573,7 +573,7 @@ export default function S_Dashboard() {
     <div className="phone-shell flex flex-col bg-gray-100" style={{ minHeight: '100dvh' }}>
 
       {/* ── HEADER ── */}
-      <div className="bg-indigo-700 text-white pt-12 pb-5 px-5 flex-shrink-0">
+      <div className="bg-brand-700 text-white pt-12 pb-5 px-5 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div>
             <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
@@ -588,20 +588,20 @@ export default function S_Dashboard() {
             <RingProgress value={data.todayVisits} max={DAILY_TARGET} size={64} stroke={6} color="#a5b4fc" />
             <div className="absolute inset-0 flex items-center justify-center flex-col">
               <p className="text-white text-sm font-extrabold leading-none">{data.todayVisits}</p>
-              <p className="text-indigo-300 text-[9px] font-bold">visits</p>
+              <p className="text-brand-300 text-[9px] font-bold">visits</p>
             </div>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-extrabold text-base leading-tight truncate">{user}</p>
-            <p className="text-indigo-300 text-xs">Sales Executive</p>
-            <p className="text-indigo-200 text-xs mt-0.5 font-semibold">
+            <p className="text-brand-300 text-xs">Sales Executive</p>
+            <p className="text-brand-200 text-xs mt-0.5 font-semibold">
               {isOnTrack ? '🔥 On track!' : `${DAILY_TARGET - data.todayVisits} visits left for target`}
             </p>
           </div>
           {!profile && (
             <button
               onClick={() => { setUser(null); setData({ todayVisits: 0, monthVisits: 0, fileLogin: 0 }); setCustomers([]) }}
-              className="text-indigo-300 text-xs font-semibold border border-indigo-400/50 rounded-lg px-2.5 py-1 active:scale-95 flex-shrink-0"
+              className="text-brand-300 text-xs font-semibold border border-brand-400/50 rounded-lg px-2.5 py-1 active:scale-95 flex-shrink-0"
             >
               Switch
             </button>
@@ -623,7 +623,7 @@ export default function S_Dashboard() {
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`flex-1 py-3 text-sm font-bold border-b-2 transition-all
-                ${tab === t.key ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}
+                ${tab === t.key ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-400'}`}
             >
               {t.label}
             </button>
@@ -634,7 +634,7 @@ export default function S_Dashboard() {
         <div className="px-4 pt-3 pb-3 bg-white border-b border-slate-100 space-y-2">
 
           {/* Search input */}
-          <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${searchActive ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 bg-slate-50'}`}>
+          <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-colors ${searchActive ? 'border-brand-400 bg-brand-50' : 'border-slate-200 bg-brand-50'}`}>
             <span className="text-slate-400 text-sm flex-shrink-0">🔍</span>
             <input
               type="text"
@@ -662,7 +662,7 @@ export default function S_Dashboard() {
                 onClick={() => setDateFilter(opt.key)}
                 className={`flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border transition-all active:scale-95
                   ${dateFilter === opt.key
-                    ? 'bg-indigo-600 border-indigo-600 text-white'
+                    ? 'bg-brand-600 border-brand-600 text-white'
                     : 'bg-white border-slate-200 text-slate-500'}`}
               >
                 {opt.label}
@@ -683,7 +683,7 @@ export default function S_Dashboard() {
                 onClick={() => setResponseFilter(opt.key)}
                 className={`flex-shrink-0 flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full border transition-all active:scale-95
                   ${responseFilter === opt.key
-                    ? 'bg-indigo-600 border-indigo-600 text-white'
+                    ? 'bg-brand-600 border-brand-600 text-white'
                     : 'bg-white border-slate-200 text-slate-500'}`}
               >
                 {opt.emoji && <span>{opt.emoji}</span>}
@@ -708,7 +708,7 @@ export default function S_Dashboard() {
                   type="date"
                   value={customFrom}
                   onChange={e => setCustomFrom(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-400"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand-400"
                 />
               </div>
               <div className="flex-1">
@@ -717,7 +717,7 @@ export default function S_Dashboard() {
                   type="date"
                   value={customTo}
                   onChange={e => setCustomTo(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-400"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand-400"
                 />
               </div>
             </div>
@@ -742,7 +742,7 @@ export default function S_Dashboard() {
         {/* Loading spinner */}
         {loading && (
           <div className="flex items-center justify-center gap-2 py-6">
-            <div className="w-5 h-5 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+            <div className="w-5 h-5 border-3 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
             <p className="text-xs font-semibold text-slate-400">Load ho raha hai...</p>
           </div>
         )}
@@ -758,11 +758,11 @@ export default function S_Dashboard() {
                     {[searchActive && 'Search', dateActive && 'Date', responseActive && 'Response'].filter(Boolean).join(' + ') + ' Filter'}
                   </p>
                   {filterLabel && (
-                    <p className="text-[11px] text-indigo-500 font-semibold mt-0.5">{filterLabel}</p>
+                    <p className="text-[11px] text-brand-500 font-semibold mt-0.5">{filterLabel}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2.5 py-0.5">
+                  <span className="text-xs font-bold text-brand-600 bg-brand-50 border border-brand-200 rounded-full px-2.5 py-0.5">
                     {filteredResults.length} found
                   </span>
                   <button
@@ -791,7 +791,7 @@ export default function S_Dashboard() {
           {!filterActive && tab === 'today' && (
             <div>
               {data.todayVisits === 0 ? (
-                <div className="mb-4 px-4 py-3 rounded-2xl border bg-slate-50 border-slate-200 flex items-center gap-2">
+                <div className="mb-4 px-4 py-3 rounded-2xl border bg-brand-50 border-slate-200 flex items-center gap-2">
                   <span>👋</span>
                   <p className="text-xs font-bold text-slate-500">Din ki shuruaat karo — pehla visit karo!</p>
                 </div>
@@ -813,8 +813,8 @@ export default function S_Dashboard() {
                   { label: 'Logined', value: todayLoggedIn,    target: null,          color: 'green'  },
                   { label: 'Pending', value: todayPending,     target: null,          color: todayPending > 0 ? 'amber' : 'green' },
                 ].map(s => {
-                  const bg   = { indigo: 'bg-indigo-50', green: 'bg-green-50', amber: 'bg-amber-50' }
-                  const text = { indigo: 'text-indigo-600', green: 'text-green-600', amber: 'text-amber-600' }
+                  const bg   = { indigo: 'bg-brand-50', green: 'bg-green-50', amber: 'bg-amber-50' }
+                  const text = { indigo: 'text-brand-600', green: 'text-green-600', amber: 'text-amber-600' }
                   return (
                     <div key={s.label} className={`${bg[s.color]} rounded-2xl p-3 text-center`}>
                       <p className={`text-2xl font-extrabold ${text[s.color]}`}>{s.value}</p>
@@ -828,11 +828,11 @@ export default function S_Dashboard() {
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-3 mb-4">
                 <div className="flex justify-between items-center mb-2">
                   <p className="text-xs font-bold text-slate-600">Daily Target Progress</p>
-                  <p className="text-xs font-extrabold text-indigo-600">{data.todayVisits} / {DAILY_TARGET}</p>
+                  <p className="text-xs font-extrabold text-brand-600">{data.todayVisits} / {DAILY_TARGET}</p>
                 </div>
                 <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-indigo-600 rounded-full transition-all"
+                    className="h-full bg-brand-600 rounded-full transition-all"
                     style={{ width: `${Math.min((data.todayVisits / DAILY_TARGET) * 100, 100)}%` }}
                   />
                 </div>
@@ -876,7 +876,7 @@ export default function S_Dashboard() {
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs">
                       <span className="text-slate-500 font-semibold">Visits</span>
-                      <span className="font-extrabold text-indigo-600">{data.monthVisits} / {MONTHLY_TARGET}</span>
+                      <span className="font-extrabold text-brand-600">{data.monthVisits} / {MONTHLY_TARGET}</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-slate-500 font-semibold">File Logins</span>
@@ -892,7 +892,7 @@ export default function S_Dashboard() {
 
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {[
-                  { label: 'Total Visits',  value: data.monthVisits, sub: `Target: ${MONTHLY_TARGET}`, color: 'bg-indigo-50 text-indigo-600' },
+                  { label: 'Total Visits',  value: data.monthVisits, sub: `Target: ${MONTHLY_TARGET}`, color: 'bg-brand-50 text-brand-600' },
                   { label: 'File Logins',   value: data.fileLogin,   sub: `Target: ${LOGIN_TARGET}`,   color: 'bg-green-50 text-green-600'   },
                   { label: 'Conversion %',  value: `${convRate}%`,   sub: convRate >= 10 ? 'Good!' : 'Improve karo', color: convRate >= 10 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500' },
                   { label: 'Aaj ke Visits', value: data.todayVisits, sub: `Target: ${DAILY_TARGET}`,   color: 'bg-purple-50 text-purple-600' },
@@ -935,7 +935,7 @@ export default function S_Dashboard() {
                 groupByDate(customers).map(group => (
                   <div key={group.label}>
                     <div className="flex items-center gap-2 mb-2 mt-3">
-                      <span className="text-xs font-bold text-indigo-500">🗓️ {group.label}</span>
+                      <span className="text-xs font-bold text-brand-500">🗓️ {group.label}</span>
                       <span className="text-[10px] text-slate-400 bg-slate-200 rounded-full px-1.5 py-0.5">{group.items.length}</span>
                     </div>
                     {group.items.map(c => (
@@ -961,7 +961,7 @@ export default function S_Dashboard() {
                 {hotLead ? (
                   <>
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-11 h-11 rounded-full bg-indigo-100 flex items-center justify-center text-base font-extrabold text-indigo-600 flex-shrink-0">
+                      <div className="w-11 h-11 rounded-full bg-brand-100 flex items-center justify-center text-base font-extrabold text-brand-600 flex-shrink-0">
                         {hotLead.shopName.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -974,13 +974,13 @@ export default function S_Dashboard() {
                           <p className="text-xs text-slate-400">📍 {[hotLead.city, hotLead.market].filter(Boolean).join(' · ')}</p>
                         )}
                         {hotLead.mobile && (
-                          <p className="text-xs text-indigo-500 font-semibold">📞 {hotLead.mobile}</p>
+                          <p className="text-xs text-brand-500 font-semibold">📞 {hotLead.mobile}</p>
                         )}
                       </div>
                     </div>
                     <button
                       onClick={() => handleFileLogin(hotLead.id)}
-                      className="w-full bg-indigo-600 text-white text-sm font-bold py-3 rounded-xl active:scale-95 transition-all shadow-md shadow-indigo-200"
+                      className="w-full bg-brand-600 text-white text-sm font-bold py-3 rounded-xl active:scale-95 transition-all shadow-md shadow-brand-200"
                     >
                       📂 File Login Karen
                     </button>
@@ -1035,7 +1035,7 @@ export default function S_Dashboard() {
             <p className="text-xs text-slate-500 text-center leading-relaxed mb-3">
               Are you sure you want to delete this customer and all related data?
             </p>
-            <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 mb-4 text-center">
+            <div className="bg-brand-50 border border-slate-200 rounded-xl px-3 py-2 mb-4 text-center">
               <p className="text-sm font-extrabold text-slate-800">{deletingCustomer.shopName}</p>
               <p className="text-xs text-slate-500">{deletingCustomer.ownerName}</p>
             </div>

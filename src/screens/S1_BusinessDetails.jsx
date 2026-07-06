@@ -33,18 +33,18 @@ const AGE_OPTIONS = [
 
 function Section({ icon, title, open, onToggle, children, badge, done }) {
   return (
-    <div className={`bg-white rounded-2xl border shadow-sm mb-3 overflow-hidden ${done ? 'border-indigo-200' : 'border-slate-100'}`}>
+    <div className={`bg-white rounded-2xl border shadow-sm mb-3 overflow-hidden ${done ? 'border-brand-200' : 'border-slate-100'}`}>
       <button onClick={onToggle} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
         <div className="flex items-center gap-2">
           <span className="text-xl">{icon}</span>
-          <span className={`text-sm font-bold ${done ? 'text-indigo-700' : 'text-slate-700'}`}>{title}</span>
+          <span className={`text-sm font-bold ${done ? 'text-brand-700' : 'text-slate-700'}`}>{title}</span>
           {badge && (
             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">{badge}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {done && (
-            <span className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold leading-none">✓</span>
+            <span className="w-5 h-5 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold leading-none">✓</span>
           )}
           <span className="text-slate-400 text-sm">{open ? '▲' : '▼'}</span>
         </div>
@@ -63,7 +63,7 @@ function ToggleRow({ label, sub, value, onChange }) {
       </div>
       <button
         onClick={() => onChange(!value)}
-        className={`w-14 h-7 rounded-full relative transition-colors flex-shrink-0 ${value ? 'bg-brand' : 'bg-slate-300'}`}
+        className={`w-14 h-7 rounded-full relative transition-colors flex-shrink-0 ${value ? 'bg-brand-600' : 'bg-slate-300'}`}
       >
         <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-8' : 'translate-x-1'}`} />
       </button>
@@ -76,8 +76,8 @@ function NumberInput({ label, value, onChange, suffix = '' }) {
   return (
     <div className="mb-3">
       <p className="text-xs font-semibold text-slate-500 mb-1">{label}</p>
-      <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden focus-within:border-brand">
-        <span className="px-3 py-2.5 bg-slate-50 text-slate-500 font-bold text-sm border-r border-slate-200">₹</span>
+      <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden focus-within:border-brand-600">
+        <span className="px-3 py-2.5 bg-brand-50 text-slate-500 font-bold text-sm border-r border-slate-200">₹</span>
         <input
           type="number"
           inputMode="numeric"
@@ -91,7 +91,7 @@ function NumberInput({ label, value, onChange, suffix = '' }) {
           }}
           className="flex-1 px-3 py-2.5 text-sm font-bold text-slate-800 outline-none bg-white"
         />
-        {suffix && <span className="px-3 py-2.5 bg-slate-50 text-slate-500 text-xs font-bold border-l border-slate-200">{suffix}</span>}
+        {suffix && <span className="px-3 py-2.5 bg-brand-50 text-slate-500 text-xs font-bold border-l border-slate-200">{suffix}</span>}
       </div>
     </div>
   )
@@ -169,7 +169,7 @@ export default function S1_BusinessDetails() {
               onClick={() => { update('businessType', bt.label); update('bizTypes', [bt.label]) }}
               className={`py-2.5 px-2 rounded-xl text-xs font-semibold text-left border-2 transition-all
                 ${inputs.businessType === bt.label
-                  ? 'border-brand bg-indigo-50 text-brand'
+                  ? 'border-brand-600 bg-brand-50 text-brand-600'
                   : 'border-slate-200 text-slate-700'}`}
             >
               {bt.emoji} {bt.label}
@@ -179,7 +179,7 @@ export default function S1_BusinessDetails() {
             onClick={() => { update('businessType', '__other__'); update('bizTypes', ['__other__']) }}
             className={`py-2.5 px-2 rounded-xl text-xs font-semibold text-left border-2 transition-all
               ${inputs.businessType === '__other__'
-                ? 'border-brand bg-indigo-50 text-brand'
+                ? 'border-brand-600 bg-brand-50 text-brand-600'
                 : 'border-slate-200 text-slate-700'}`}
           >
             Other
@@ -191,7 +191,7 @@ export default function S1_BusinessDetails() {
             value={inputs.bizTypeOther || ''}
             onChange={e => update('bizTypeOther', e.target.value)}
             placeholder="Business type likho..."
-            className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-indigo-400 mb-3"
+            className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 mb-3"
           />
         )}
 
@@ -203,7 +203,7 @@ export default function S1_BusinessDetails() {
               onClick={() => update('businessAge', a.value)}
               className={`flex-1 py-2 rounded-xl text-xs font-bold text-center border-2 transition-all
                 ${inputs.businessAge === a.value
-                  ? 'border-brand bg-indigo-50 text-brand'
+                  ? 'border-brand-600 bg-brand-50 text-brand-600'
                   : 'border-slate-200 text-slate-500'}`}
             >
               {a.label}
@@ -214,14 +214,14 @@ export default function S1_BusinessDetails() {
 
       {/* ── 2. Sales & Profit ── */}
       <Section icon="💰" title="Bikri aur Faida" open={open.sales} onToggle={() => toggle('sales')} done={done.sales}>
-        <div className="bg-indigo-50 rounded-xl p-3 mb-4 mt-2 flex justify-between items-center">
+        <div className="bg-brand-50 rounded-xl p-3 mb-4 mt-2 flex justify-between items-center">
           <div>
-            <p className="text-xs text-brand font-semibold">Monthly Profit</p>
-            <p className="text-2xl font-extrabold text-brand">{fmtINR(monthlyProfit)}</p>
+            <p className="text-xs text-brand-600 font-semibold">Monthly Profit</p>
+            <p className="text-2xl font-extrabold text-brand-600">{fmtINR(monthlyProfit)}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-indigo-400">Roz ka</p>
-            <p className="text-lg font-bold text-indigo-500">₹{Math.round(monthlyProfit / 30).toLocaleString('en-IN')}</p>
+            <p className="text-xs text-brand-400">Roz ka</p>
+            <p className="text-lg font-bold text-brand-500">₹{Math.round(monthlyProfit / 30).toLocaleString('en-IN')}</p>
           </div>
         </div>
 
@@ -272,14 +272,14 @@ export default function S1_BusinessDetails() {
             ].map(d => (
               <div key={d.key}>
                 <p className="text-xs text-slate-500 mb-1 text-center">{d.label}</p>
-                <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden focus-within:border-brand">
+                <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden focus-within:border-brand-600">
                   <input
                     type="number" min={0} max={20}
                     value={inputs[d.key] || ''}
                     onChange={e => update(d.key, Number(e.target.value) || 0)}
                     className="w-full px-2 py-2 text-sm font-bold text-center outline-none"
                   />
-                  <span className="px-2 py-2 bg-slate-50 text-slate-500 text-xs font-bold border-l border-slate-200">%</span>
+                  <span className="px-2 py-2 bg-brand-50 text-slate-500 text-xs font-bold border-l border-slate-200">%</span>
                 </div>
               </div>
             ))}
@@ -404,7 +404,7 @@ export default function S1_BusinessDetails() {
           <NumberInput label="Bijli / Electricity (₹/mah)" value={inputs.electricity} onChange={v => update('electricity', v)} />
         </div>
         <NumberInput label="Salary / Wages (₹/mah)" value={inputs.salaries} onChange={v => update('salaries', v)} />
-        <div className="bg-slate-50 rounded-xl px-3 py-2 mb-3 flex justify-between">
+        <div className="bg-brand-50 rounded-xl px-3 py-2 mb-3 flex justify-between">
           <span className="text-xs text-slate-600 font-semibold">Total Fixed Expenses</span>
           <span className="text-sm font-extrabold text-slate-800">
             {fmtINRFull(inputs.rent + inputs.electricity + inputs.salaries)}/mah
@@ -463,7 +463,7 @@ export default function S1_BusinessDetails() {
               onClick={() => update('existingLoan', opt.value)}
               className={`flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all
                 ${inputs.existingLoan === opt.value
-                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                  ? 'border-brand-500 bg-brand-50 text-brand-700'
                   : 'border-slate-200 text-slate-500'}`}
             >
               {opt.label}
