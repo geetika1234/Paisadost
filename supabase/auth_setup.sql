@@ -10,9 +10,9 @@
 CREATE TABLE IF NOT EXISTS profiles (
   id          UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   mobile      TEXT        UNIQUE NOT NULL,
-  name        TEXT        NOT NULL,
+  fullname    TEXT        NOT NULL,
   role        TEXT        NOT NULL DEFAULT 'sales',   -- 'admin' | 'manager' | 'sales'
-  approved    BOOLEAN     NOT NULL DEFAULT FALSE,
+  is_approved BOOLEAN     NOT NULL DEFAULT FALSE,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -41,7 +41,7 @@ CREATE POLICY "profiles_insert" ON profiles FOR INSERT
 
 -- Only admins can update any profile (approve, change role)
 CREATE POLICY "profiles_update" ON profiles FOR UPDATE
-  USING (get_my_role() = 'admin');
+  USING (get_my_role() = 'admin' OR id = auth.uid());
 
 -- ── 4. IMPORTANT: Disable email confirmation ──────────────────────────────────
 -- Go to Supabase Dashboard → Authentication → Providers → Email
@@ -50,7 +50,7 @@ CREATE POLICY "profiles_update" ON profiles FOR UPDATE
 -- ── 5. Bootstrap: promote the first admin manually ───────────────────────────
 -- After the first user registers via the app, run this in SQL Editor:
 --
---   UPDATE profiles SET role = 'admin', approved = true
+--   UPDATE profiles SET role = 'admin', is_approved = true
 --   WHERE mobile = '9999999999';   -- ← replace with your mobile number
 --
 -- All subsequent approvals can be done from the Admin Panel in the app.
