@@ -4,6 +4,7 @@ import { getCurrentUser, setCurrentUser } from '../lib/db/dashboard'
 import { saveCustomer, updateCustomer, checkMobileDuplicate, assignCustomer } from '../lib/db/customers'
 import { addEvent, updateEventData } from '../lib/db/events'
 import { uploadPhoto } from '../lib/db/storage'
+import { stampPhoto, getGeoLocation } from '../lib/utils/stampPhoto'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -265,7 +266,8 @@ export default function S_CustomerForm() {
   const [mobileError,    setMobileError]    = useState(null)
   const [checkingMobile, setCheckingMobile] = useState(false)
   // photoFiles holds File objects for upload; data.photos holds blob URLs for preview
-  const [photoFiles, setPhotoFiles] = useState([])
+  const [photoFiles,   setPhotoFiles]   = useState([])
+  const [stampingCount, setStampingCount] = useState(0)
   const cameraRef  = useRef()
   const galleryRef = useRef()
 
@@ -305,12 +307,23 @@ export default function S_CustomerForm() {
   function canGoToStep(_i) { return true }
 
   // ── Photos ────────────────────────────────────────────────────────────────
-  function handleFiles(files) {
+  async function handleFiles(files) {
     if (!files.length) return
     const fileArr = Array.from(files)
-    const urls    = fileArr.map(f => URL.createObjectURL(f))
+    setStampingCount(fileArr.length)
+
+    // Get GPS once for the whole batch
+    const geo = await getGeoLocation()
+
+    // Stamp each photo in parallel
+    const stamped = await Promise.all(
+      fileArr.map(f => stampPhoto(f, geo).catch(() => f))  // fallback to original if stamp fails
+    )
+
+    const urls = stamped.map(f => URL.createObjectURL(f))
     setData(d => ({ ...d, photos: [...d.photos, ...urls] }))
-    setPhotoFiles(prev => [...prev, ...fileArr])   // keep File objects for upload
+    setPhotoFiles(prev => [...prev, ...stamped])
+    setStampingCount(0)
   }
 
   function removePhoto(idx) {
@@ -789,22 +802,34 @@ export default function S_CustomerForm() {
             </div>
 
             {/* Upload buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => cameraRef.current.click()}
-                className="bg-white border-2 border-dashed border-brand-300 rounded-2xl py-6 flex flex-col items-center gap-2 active:scale-95 transition-all"
-              >
-                <span className="text-3xl">📷</span>
-                <p className="text-xs font-bold text-brand-700">Camera se lo</p>
-              </button>
-              <button
-                onClick={() => galleryRef.current.click()}
-                className="bg-white border-2 border-dashed border-slate-300 rounded-2xl py-6 flex flex-col items-center gap-2 active:scale-95 transition-all"
-              >
-                <span className="text-3xl">🖼️</span>
-                <p className="text-xs font-bold text-slate-600">Gallery se upload</p>
-              </button>
-            </div>
+            {stampingCount > 0 ? (
+              <div className="bg-brand-50 border border-brand-200 rounded-2xl py-6 flex flex-col items-center gap-2">
+                <div className="w-7 h-7 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+                <p className="text-xs font-bold text-brand-700">
+                  GPS aur time stamp lag raha hai... ({stampingCount} photo{stampingCount > 1 ? 'ein' : ''})
+                </p>
+                <p className="text-[10px] text-brand-500">Thoda wait karein</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => cameraRef.current.click()}
+                  className="bg-white border-2 border-dashed border-brand-300 rounded-2xl py-6 flex flex-col items-center gap-2 active:scale-95 transition-all"
+                >
+                  <span className="text-3xl">📷</span>
+                  <p className="text-xs font-bold text-brand-700">Camera se lo</p>
+                  <p className="text-[10px] text-brand-400">GPS auto-stamp</p>
+                </button>
+                <button
+                  onClick={() => galleryRef.current.click()}
+                  className="bg-white border-2 border-dashed border-slate-300 rounded-2xl py-6 flex flex-col items-center gap-2 active:scale-95 transition-all"
+                >
+                  <span className="text-3xl">🖼️</span>
+                  <p className="text-xs font-bold text-slate-600">Gallery se upload</p>
+                  <p className="text-[10px] text-slate-400">GPS auto-stamp</p>
+                </button>
+              </div>
+            )}
 
             {/* Hidden inputs */}
             <input ref={cameraRef}  type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={e => handleFiles(e.target.files)} />
