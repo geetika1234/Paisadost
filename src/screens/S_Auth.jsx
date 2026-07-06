@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { signIn, signUp } from '../lib/auth'
+import { useApp } from '../context/AppContext'
 
 export default function S_Auth() {
+  const { authError } = useApp()
   const [tab,     setTab]     = useState('login')
   const [form,    setForm]    = useState({ mobile: '', name: '', password: '', confirm: '' })
   const [loading, setLoading] = useState(false)
@@ -9,6 +11,7 @@ export default function S_Auth() {
   const [success, setSuccess] = useState(null)
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const displayError = error || authError
 
   function switchTab(t) { setTab(t); setError(null); setSuccess(null) }
 
@@ -143,9 +146,9 @@ export default function S_Auth() {
           </div>
         )}
 
-        {error && (
+        {displayError && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-            <p className="text-xs font-semibold text-red-600">⚠️ {error}</p>
+            <p className="text-xs font-semibold text-red-600">⚠️ {displayError}</p>
           </div>
         )}
 

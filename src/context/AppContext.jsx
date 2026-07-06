@@ -22,6 +22,7 @@ export function AppProvider({ children }) {
   const [session,     setSession]     = useState(null)
   const [profile,     setProfile]     = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
+  const [authError,   setAuthError]   = useState(null)
   const [adminPanelOpen, setAdminPanelOpen] = useState(false)
 
   useEffect(() => {
@@ -30,12 +31,16 @@ export function AppProvider({ children }) {
     async function initAuth(sess) {
       if (!mounted) return
       setSession(sess)
+      setAuthError(null)
       if (sess?.user) {
         try {
           const prof = await getProfile(sess.user.id)
           if (mounted) { setProfile(prof); setCurrentUser(prof.fullname) }
-        } catch {
-          if (mounted) setProfile(null)
+        } catch (err) {
+          if (mounted) {
+            setProfile(null)
+            setAuthError(err.message || 'Profile load failed. Contact your admin.')
+          }
         }
       } else {
         if (mounted) { setProfile(null); setCurrentUser(null) }
@@ -188,7 +193,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       // Auth
-      session, profile, authLoading,
+      session, profile, authLoading, authError,
       adminPanelOpen,
       openAdminPanel:  () => setAdminPanelOpen(true),
       closeAdminPanel: () => setAdminPanelOpen(false),
