@@ -855,6 +855,11 @@ export default function S_CustomerForm() {
                     >
                       <span className="text-white text-[10px] font-bold">×</span>
                     </button>
+                    {photoFiles[i]?.name?.includes('_stamped') && (
+                      <div className="absolute top-1 left-1 bg-brand-600 rounded px-1 py-0.5">
+                        <span className="text-white text-[8px] font-bold">GPS</span>
+                      </div>
+                    )}
                     <div className="absolute bottom-1 left-1 bg-black/50 rounded px-1">
                       <span className="text-white text-[9px] font-bold">{i + 1}</span>
                     </div>

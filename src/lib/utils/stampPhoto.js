@@ -1,96 +1,86 @@
-// Try network-based location first (fast, ~1-2s), then GPS if inaccurate.
-// maximumAge:30000 uses a cached fix if one exists — instant on repeat use.
 export function getGeoLocation() {
   return new Promise(resolve => {
     if (!navigator.geolocation) { resolve(null); return }
-
     let settled = false
-    function done(val) {
-      if (settled) return
-      settled = true
-      resolve(val)
-    }
-
-    // Fast attempt: network/wifi-based, accepts cached fix up to 30s old
+    function done(val) { if (!settled) { settled = true; resolve(val) } }
     navigator.geolocation.getCurrentPosition(
-      pos => done({
-        lat:      pos.coords.latitude,
-        lng:      pos.coords.longitude,
-        accuracy: Math.round(pos.coords.accuracy),
-      }),
+      pos => done({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) }),
       () => done(null),
       { timeout: 8000, enableHighAccuracy: false, maximumAge: 30000 }
     )
   })
 }
 
-function formatCoord(val, posDir, negDir) {
-  const dir = val >= 0 ? posDir : negDir
-  return `${Math.abs(val).toFixed(5)}° ${dir}`
+function formatCoord(val, pos, neg) {
+  return `${Math.abs(val).toFixed(4)}${val >= 0 ? pos : neg}`
 }
 
 function formatDateTime(date) {
-  return date.toLocaleString('en-IN', {
-    day:    '2-digit',
-    month:  'short',
-    year:   'numeric',
-    hour:   '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
+  const d = date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  const t = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return `${d}  ${t}`
 }
 
-// Draws geo + timestamp stamp onto a photo File.
-// Returns a new File (JPEG) with the stamp baked in.
 export function stampPhoto(file, geo) {
   return new Promise((resolve, reject) => {
     const img = new Image()
+
     img.onload = () => {
+      const W = img.naturalWidth  || img.width
+      const H = img.naturalHeight || img.height
+
       const canvas = document.createElement('canvas')
-      canvas.width  = img.naturalWidth
-      canvas.height = img.naturalHeight
+      canvas.width  = W
+      canvas.height = H
       const ctx = canvas.getContext('2d')
 
-      // Draw original photo
-      ctx.drawImage(img, 0, 0)
+      // Draw original image
+      ctx.drawImage(img, 0, 0, W, H)
 
-      // ── Stamp dimensions ───────────────────────────────────────
-      const W          = canvas.width
-      const H          = canvas.height
-      const barH       = Math.max(56, Math.round(H * 0.09))  // ~9% of height
-      const pad        = Math.round(barH * 0.18)
-      const fontSize   = Math.max(14, Math.round(barH * 0.28))
-      const lineH      = fontSize + Math.round(barH * 0.12)
+      // ── Stamp layout ──────────────────────────────────────────
+      const barH    = Math.max(72, Math.round(H * 0.10))
+      const fontSize = Math.max(18, Math.round(barH * 0.26))
+      const pad     = Math.round(barH * 0.15)
+      const lineGap = Math.round(fontSize * 1.45)
 
-      // Semi-transparent dark bar
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.62)'
+      // Solid dark background bar
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.80)'
       ctx.fillRect(0, H - barH, W, barH)
 
-      // White text
+      // Green accent line at top of bar
+      ctx.fillStyle = '#2E5835'
+      ctx.fillRect(0, H - barH, W, Math.max(4, Math.round(barH * 0.05)))
+
+      // ── Text (no emojis — unreliable on canvas) ───────────────
+      ctx.font         = `bold ${fontSize}px Arial, Helvetica, sans-serif`
       ctx.fillStyle    = '#FFFFFF'
-      ctx.font         = `bold ${fontSize}px Arial, sans-serif`
       ctx.textBaseline = 'top'
 
-      const geoLine = geo
-        ? `\u{1F4CD} ${formatCoord(geo.lat, 'N', 'S')}  ${formatCoord(geo.lng, 'E', 'W')}  ±${geo.accuracy}m`
-        : '\u{1F4CD} Location N/A'
+      const geoText = geo
+        ? `GPS: ${formatCoord(geo.lat, 'N', 'S')}, ${formatCoord(geo.lng, 'E', 'W')}  (+/-${geo.accuracy}m)`
+        : 'GPS: Location unavailable'
 
-      const timeLine = `\u{1F550} ${formatDateTime(new Date())}   AR Financier's`
+      const timeText = `${formatDateTime(new Date())}   AR Financier's`
 
-      ctx.fillText(geoLine,  pad, H - barH + pad)
-      ctx.fillText(timeLine, pad, H - barH + pad + lineH)
+      ctx.fillText(geoText,  pad, H - barH + pad + 4)
+      ctx.fillText(timeText, pad, H - barH + pad + 4 + lineGap)
 
-      canvas.toBlob(
-        blob => {
-          if (!blob) { reject(new Error('Canvas export failed')); return }
-          const stamped = new File([blob], file.name.replace(/\.[^.]+$/, '_stamped.jpg'), { type: 'image/jpeg' })
-          resolve(stamped)
-        },
-        'image/jpeg',
-        0.92
-      )
+      // ── Export via dataURL (more reliable than toBlob on mobile) ──
+      try {
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
+        fetch(dataUrl)
+          .then(r => r.blob())
+          .then(blob => {
+            const name = file.name.replace(/\.[^.]+$/, '') + '_stamped.jpg'
+            resolve(new File([blob], name, { type: 'image/jpeg' }))
+          })
+          .catch(reject)
+      } catch (e) {
+        reject(e)
+      }
     }
-    img.onerror = reject
+
+    img.onerror = () => reject(new Error('Image load failed'))
     img.src = URL.createObjectURL(file)
   })
 }
