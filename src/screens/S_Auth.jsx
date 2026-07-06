@@ -64,7 +64,7 @@ export default function S_Auth() {
       {/* Header */}
       <div className="bg-indigo-700 text-white pt-16 pb-10 px-6 flex-shrink-0 flex flex-col items-center">
         <img
-          src="https://rzktrracmsxiwhryfxrw.supabase.co/storage/v1/object/public/photos/LOGO.png"
+          src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
           alt="PaisaDost"
           className="h-10 w-auto object-contain mb-3"
         />

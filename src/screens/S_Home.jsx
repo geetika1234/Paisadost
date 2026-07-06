@@ -33,7 +33,7 @@ export default function S_Home() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <img
-              src="https://rzktrracmsxiwhryfxrw.supabase.co/storage/v1/object/public/photos/LOGO.png"
+              src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
               alt="PaisaDost"
               className="h-8 w-auto object-contain mb-1"
             />

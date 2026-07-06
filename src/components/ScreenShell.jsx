@@ -22,7 +22,7 @@ export default function ScreenShell({ title, subtitle, step, total, onBack, chil
           <div className="flex-1">
             <div className="flex items-center gap-1.5 mb-0.5">
               <img
-                src="https://rzktrracmsxiwhryfxrw.supabase.co/storage/v1/object/public/photos/LOGO.png"
+                src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
                 alt="PaisaDost"
                 className="h-5 w-auto object-contain"
               />
