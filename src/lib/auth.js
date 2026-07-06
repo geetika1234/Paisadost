@@ -3,7 +3,7 @@ import { supabase } from './supabase'
 // Mobile numbers are turned into virtual emails for Supabase email+password auth.
 // This avoids needing Twilio/OTP while keeping mobile as the user identifier.
 function toEmail(mobile) {
-  return `${mobile.trim()}@paisadost.local`
+  return `${mobile.trim()}@arfinanciers.local`
 }
 
 export async function signUp({ mobile, name, password }) {

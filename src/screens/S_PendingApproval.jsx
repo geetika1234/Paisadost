@@ -19,7 +19,7 @@ export default function S_PendingApproval() {
       <div className="bg-indigo-700 text-white pt-12 pb-5 px-5 flex-shrink-0">
         <img
           src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
-          alt="PaisaDost"
+          alt="Ar Financier's"
           className="h-6 w-auto object-contain"
         />
       </div>

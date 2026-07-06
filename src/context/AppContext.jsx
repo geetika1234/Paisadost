@@ -47,9 +47,9 @@ export function AppProvider({ children }) {
     const { data: { subscription } } = onAuthStateChange(initAuth)
 
     // Exposed so S_Auth can trigger a re-fetch after profile insert completes
-    window.__paisadostRefreshAuth = () => getSession().then(initAuth)
+    window.__arfinancierRefreshAuth = () => getSession().then(initAuth)
 
-    return () => { mounted = false; subscription.unsubscribe(); delete window.__paisadostRefreshAuth }
+    return () => { mounted = false; subscription.unsubscribe(); delete window.__arfinancierRefreshAuth }
   }, [])
 
   const [inputs, setInputs] = useState(() => {

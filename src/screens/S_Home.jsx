@@ -34,7 +34,7 @@ export default function S_Home() {
           <div>
             <img
               src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
-              alt="PaisaDost"
+              alt="Ar Financier's"
               className="h-8 w-auto object-contain mb-1"
             />
             <h1 className="text-2xl font-extrabold mt-0.5 leading-tight">Aaj Kya Karein?</h1>

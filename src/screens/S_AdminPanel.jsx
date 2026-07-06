@@ -81,7 +81,7 @@ export default function S_AdminPanel() {
         <div>
           <img
             src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
-            alt="PaisaDost"
+            alt="Ar Financier's"
             className="h-6 w-auto object-contain mb-1"
           />
           <h1 className="text-lg font-extrabold mt-0.5">👑 Admin Panel</h1>

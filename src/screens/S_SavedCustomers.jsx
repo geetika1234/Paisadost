@@ -57,7 +57,7 @@ export default function S_SavedCustomers() {
       {/* Header */}
       <div className="bg-indigo-700 text-white pt-12 pb-3 px-5 flex-shrink-0 flex items-center justify-between">
         <div>
-          <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="PaisaDost" className="h-6 w-auto object-contain mb-1" />
+          <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
           <h1 className="text-lg font-extrabold leading-tight">Saved Customers</h1>
           <p className="text-xs text-indigo-300 mt-0.5">{customers.length} customer{customers.length !== 1 ? 's' : ''} saved</p>
         </div>

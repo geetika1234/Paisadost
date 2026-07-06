@@ -21,14 +21,14 @@ export default function S7_Offer() {
   const businessLabel = BUSINESS_LABELS[inputs.businessType] ?? 'Business'
 
   function handleShare() {
-    const text = `Namaste! 🙏\n\nAapke ${businessLabel} ke liye hamaara PaisaDost analysis:\n\n` +
+    const text = `Namaste! 🙏\n\nAapke ${businessLabel} ke liye hamaara Ar Financier's analysis:\n\n` +
       `✅ Recommended Loan: ${fmtINRFull(rec.recLoan)}\n` +
       `✅ Monthly EMI: ${fmtINRFull(Math.round(rec.recEMI))}\n` +
       `✅ Tenure: ${rec.recTenure} mahine\n` +
       `✅ Monthly Extra Kamaai: ${fmtINRFull(Math.round(roi.totalMonthlyGain))}\n` +
       `✅ Net Faida (${rec.recTenure}M mein): ${fmtINRFull(Math.round(rec.recNetGain))}\n` +
       `✅ Payback: ${roi.paybackMonths.toFixed(1)} mahine mein\n\n` +
-      `Aage badhne ke liye call karein! 📞\n\n— PaisaDost`
+      `Aage badhne ke liye call karein! 📞\n\n— Ar Financier's`
 
     if (navigator.share) {
       navigator.share({ text })

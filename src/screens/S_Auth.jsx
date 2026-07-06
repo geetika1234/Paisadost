@@ -41,7 +41,7 @@ export default function S_Auth() {
     try {
       await signUp({ mobile, name, password: form.password })
       setSuccess('Register ho gaye! Admin approval ka wait karein.')
-      window.__paisadostRefreshAuth?.()
+      window.__arfinancierRefreshAuth?.()
     } catch (err) {
       const msg = err.message
       setError(
@@ -65,10 +65,10 @@ export default function S_Auth() {
       <div className="bg-indigo-700 text-white pt-16 pb-10 px-6 flex-shrink-0 flex flex-col items-center">
         <img
           src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
-          alt="PaisaDost"
+          alt="Ar Financier's"
           className="h-10 w-auto object-contain mb-3"
         />
-        <h1 className="text-2xl font-extrabold">PaisaDost</h1>
+        <h1 className="text-2xl font-extrabold">Ar Financier's</h1>
         <p className="text-indigo-300 text-sm mt-1">Field Sales Platform</p>
       </div>
 
