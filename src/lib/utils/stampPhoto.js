@@ -2,7 +2,9 @@ function fromPos(p) {
   return { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: Math.round(p.coords.accuracy) }
 }
 
-// Reverse geocode lat/lng → "Locality, City" using BigDataCloud (free, no API key, CORS-safe)
+// Reverse geocode lat/lng → "Sub-area, City"
+// BigDataCloud's top-level `locality` field is often blank for India;
+// the real neighbourhood name lives in localityInfo.informative / administrative.
 async function reverseGeocode(lat, lng) {
   try {
     const ctrl  = new AbortController()
@@ -14,8 +16,24 @@ async function reverseGeocode(lat, lng) {
     clearTimeout(timer)
     if (!res.ok) return null
     const json  = await res.json()
-    const parts = [json.locality, json.city].filter(v => v && v.trim())
-    return parts.length ? parts.join(', ') : null
+
+    const city  = json.city?.trim() || null
+    const info  = json.localityInfo?.informative  || []
+    const admin = json.localityInfo?.administrative || []
+
+    // Most specific name: neighbourhood > suburb > highest admin sub-area > locality field
+    const neighbourhood = info.find(i => i.description === 'neighbourhood')?.name?.trim()
+    const suburb        = info.find(i => i.description === 'suburb')?.name?.trim()
+    const adminSub      = admin
+      .filter(a => a.adminLevel >= 9)
+      .sort((a, b) => b.adminLevel - a.adminLevel)[0]?.name?.trim()
+    const localityField = json.locality?.trim() || null
+
+    const subArea = neighbourhood || suburb || adminSub || localityField || null
+
+    if (!city && !subArea) return null
+    if (!subArea || subArea === city) return city
+    return `${subArea}, ${city}`
   } catch {
     return null
   }
