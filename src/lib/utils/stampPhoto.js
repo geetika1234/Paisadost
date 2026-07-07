@@ -59,9 +59,10 @@ function formatCoord(val, pos, neg) {
 }
 
 function formatDateTime(date) {
-  const d = date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-  const t = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
-  return `${d}  ${t}`
+  const day = date.toLocaleDateString('en-IN', { weekday: 'short' })
+  const d   = date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  const t   = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return `${day}, ${d}  ${t}`
 }
 
 export function stampPhoto(file, geo) {
