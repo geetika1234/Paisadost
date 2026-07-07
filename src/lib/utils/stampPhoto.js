@@ -4,24 +4,15 @@ function fromPos(p) {
 
 // Returns { geo: {lat,lng,accuracy}|null, errorCode: null|1|2|3|-1 }
 // errorCode: null=ok  1=permission_denied  2=unavailable  3=timeout  -1=not_supported
+// Uses network/WiFi location (enableHighAccuracy:false) — fast on mobile (1-3s),
+// works indoors, doesn't wait for GPS satellite lock.
 export function getGeoLocationWithStatus() {
   return new Promise(resolve => {
     if (!navigator.geolocation) { resolve({ geo: null, errorCode: -1 }); return }
-
-    // Step 1: try GPS (high accuracy, 6 s)
     navigator.geolocation.getCurrentPosition(
       p => resolve({ geo: fromPos(p), errorCode: null }),
-      firstErr => {
-        // Permission denied — no point retrying with different accuracy
-        if (firstErr.code === 1) { resolve({ geo: null, errorCode: 1 }); return }
-        // Step 2: fall back to network-based location (10 s, accepts 60 s old cache)
-        navigator.geolocation.getCurrentPosition(
-          p => resolve({ geo: fromPos(p), errorCode: null }),
-          lastErr => resolve({ geo: null, errorCode: lastErr.code }),
-          { timeout: 10000, enableHighAccuracy: false, maximumAge: 60000 }
-        )
-      },
-      { timeout: 6000, enableHighAccuracy: true, maximumAge: 15000 }
+      err => resolve({ geo: null, errorCode: err.code }),
+      { timeout: 15000, enableHighAccuracy: false, maximumAge: 60000 }
     )
   })
 }

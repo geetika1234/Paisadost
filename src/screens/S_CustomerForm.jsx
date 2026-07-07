@@ -269,17 +269,22 @@ export default function S_CustomerForm() {
   const [photoFiles,    setPhotoFiles]    = useState([])
   const [stampingCount, setStampingCount] = useState(0)
   // status: 'idle' | 'fetching' | 'success' | 'denied' | 'unavailable'
-  const [geoState,      setGeoState]      = useState({ status: 'idle', geo: null })
-  const cameraRef  = useRef()
-  const galleryRef = useRef()
+  const [geoState,      setGeoState]      = useState({ status: 'idle', geo: null, errorCode: null })
+  const cameraRef      = useRef()
+  const galleryRef     = useRef()
+  // Stores the in-flight promise so handleFiles can wait for it
+  const geoPromiseRef  = useRef(null)
 
   function fetchGeo() {
-    setGeoState({ status: 'fetching', geo: null })
-    getGeoLocationWithStatus().then(({ geo, errorCode }) => {
-      if (geo)            setGeoState({ status: 'success',     geo })
-      else if (errorCode === 1) setGeoState({ status: 'denied',      geo: null })
-      else                setGeoState({ status: 'unavailable', geo: null })
+    setGeoState({ status: 'fetching', geo: null, errorCode: null })
+    const p = getGeoLocationWithStatus().then(({ geo, errorCode }) => {
+      if (geo)                  setGeoState({ status: 'success',     geo, errorCode: null })
+      else if (errorCode === 1) setGeoState({ status: 'denied',      geo: null, errorCode: 1 })
+      else                      setGeoState({ status: 'unavailable', geo: null, errorCode })
+      return { geo, errorCode }
     })
+    geoPromiseRef.current = p
+    return p
   }
 
   // Trigger location fetch as soon as user reaches photo step
@@ -329,12 +334,16 @@ export default function S_CustomerForm() {
     const fileArr = Array.from(files)
     setStampingCount(fileArr.length)
 
-    // Use already-fetched geo; retry only if not denied
     let geo = geoState.geo
-    if (!geo && geoState.status !== 'denied') {
-      const result = await getGeoLocationWithStatus()
-      geo = result.geo
-      if (result.geo) setGeoState({ status: 'success', geo: result.geo })
+    if (!geo) {
+      if (geoState.status === 'fetching' && geoPromiseRef.current) {
+        // Wait for the already-running request (don't fire a second one)
+        const result = await geoPromiseRef.current
+        geo = result?.geo ?? null
+      } else if (geoState.status !== 'denied') {
+        const result = await fetchGeo()
+        geo = result?.geo ?? null
+      }
     }
 
     const stamped = await Promise.all(
@@ -810,35 +819,56 @@ export default function S_CustomerForm() {
             </div>
 
             {/* GPS status */}
-            {geoState.status === 'idle' || geoState.status === 'fetching' ? (
+            {(geoState.status === 'idle' || geoState.status === 'fetching') && (
               <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center gap-3">
                 <div className="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                <p className="text-xs font-semibold text-slate-600">GPS location dhoond raha hai...</p>
+                <p className="text-xs font-semibold text-slate-600">Location dhoond raha hai — allow karein agar popup aaye...</p>
               </div>
-            ) : geoState.status === 'success' ? (
+            )}
+            {geoState.status === 'success' && (
               <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-                <p className="text-xs font-bold text-green-700">GPS Ready — photo par stamp lagega</p>
+                <p className="text-xs font-bold text-green-700">GPS Ready — coordinates stamp honge</p>
                 <p className="text-[11px] font-mono text-green-600 mt-0.5">
                   LAT: {geoState.geo.lat.toFixed(5)}  LNG: {geoState.geo.lng.toFixed(5)}  (+-{geoState.geo.accuracy}m)
                 </p>
               </div>
-            ) : geoState.status === 'denied' ? (
+            )}
+            {geoState.status === 'denied' && (
               <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                <p className="text-xs font-bold text-red-700">Location Permission Denied</p>
-                <p className="text-xs text-red-500 mt-0.5">Browser settings → Site Settings → Location → Allow karein, phir page reload karein.</p>
+                <p className="text-xs font-bold text-red-700">Location Permission Blocked</p>
+                <p className="text-xs text-red-600 mt-1 leading-relaxed">
+                  <strong>Android:</strong> Chrome address bar → lock icon tap karein → Location → Allow<br/>
+                  <strong>iPhone:</strong> Settings → Safari → Location → Allow
+                </p>
+                <p className="text-xs text-red-400 mt-1">Allow karne ke baad page reload karein</p>
               </div>
-            ) : (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-bold text-amber-700">GPS Signal Nahi Mila</p>
-                  <p className="text-xs text-amber-600 mt-0.5">Photo bina coordinates ke upload hogi</p>
+            )}
+            {geoState.status === 'unavailable' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    {geoState.errorCode === 2 ? (
+                      <>
+                        <p className="text-xs font-bold text-amber-700">Phone ka Location/GPS Band Hai</p>
+                        <p className="text-xs text-amber-600 mt-0.5">
+                          <strong>Android:</strong> Settings → Location → ON karein<br/>
+                          <strong>iPhone:</strong> Settings → Privacy → Location Services → ON
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs font-bold text-amber-700">Location Timeout</p>
+                        <p className="text-xs text-amber-600 mt-0.5">Network connection check karein ya Retry karein</p>
+                      </>
+                    )}
+                  </div>
+                  <button
+                    onClick={fetchGeo}
+                    className="flex-shrink-0 text-xs font-bold text-amber-700 border border-amber-300 rounded-lg px-3 py-1.5 active:scale-95 mt-0.5"
+                  >
+                    Retry
+                  </button>
                 </div>
-                <button
-                  onClick={fetchGeo}
-                  className="flex-shrink-0 text-xs font-bold text-amber-700 border border-amber-300 rounded-lg px-3 py-1.5 active:scale-95"
-                >
-                  Retry
-                </button>
               </div>
             )}
 
