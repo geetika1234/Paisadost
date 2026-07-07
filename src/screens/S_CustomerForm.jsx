@@ -4,7 +4,7 @@ import { getCurrentUser, setCurrentUser } from '../lib/db/dashboard'
 import { saveCustomer, updateCustomer, checkMobileDuplicate, assignCustomer } from '../lib/db/customers'
 import { addEvent, updateEventData } from '../lib/db/events'
 import { uploadPhoto } from '../lib/db/storage'
-import { stampPhoto, getGeoLocation } from '../lib/utils/stampPhoto'
+import { stampPhoto, getGeoLocationWithStatus } from '../lib/utils/stampPhoto'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -268,15 +268,24 @@ export default function S_CustomerForm() {
   // photoFiles holds File objects for upload; data.photos holds blob URLs for preview
   const [photoFiles,    setPhotoFiles]    = useState([])
   const [stampingCount, setStampingCount] = useState(0)
-  const [geoCache,      setGeoCache]      = useState(null)
+  // status: 'idle' | 'fetching' | 'success' | 'denied' | 'unavailable'
+  const [geoState,      setGeoState]      = useState({ status: 'idle', geo: null })
   const cameraRef  = useRef()
   const galleryRef = useRef()
 
-  // Warm up location as soon as the user reaches the photo step — fires the
-  // permission prompt early so it doesn't block the camera button later.
+  function fetchGeo() {
+    setGeoState({ status: 'fetching', geo: null })
+    getGeoLocationWithStatus().then(({ geo, errorCode }) => {
+      if (geo)            setGeoState({ status: 'success',     geo })
+      else if (errorCode === 1) setGeoState({ status: 'denied',      geo: null })
+      else                setGeoState({ status: 'unavailable', geo: null })
+    })
+  }
+
+  // Trigger location fetch as soon as user reaches photo step
   useEffect(() => {
     if (step !== 2) return
-    getGeoLocation().then(g => { if (g) setGeoCache(g) })
+    fetchGeo()
   }, [step])
 
   function handleLogin(name) {
@@ -320,12 +329,16 @@ export default function S_CustomerForm() {
     const fileArr = Array.from(files)
     setStampingCount(fileArr.length)
 
-    // Use cached fix if available, otherwise fetch fresh
-    const geo = geoCache ?? await getGeoLocation()
+    // Use already-fetched geo; retry only if not denied
+    let geo = geoState.geo
+    if (!geo && geoState.status !== 'denied') {
+      const result = await getGeoLocationWithStatus()
+      geo = result.geo
+      if (result.geo) setGeoState({ status: 'success', geo: result.geo })
+    }
 
-    // Stamp each photo in parallel
     const stamped = await Promise.all(
-      fileArr.map(f => stampPhoto(f, geo).catch(() => f))  // fallback to original if stamp fails
+      fileArr.map(f => stampPhoto(f, geo).catch(err => { console.error('[stamp]', err); return f }))
     )
 
     const urls = stamped.map(f => URL.createObjectURL(f))
@@ -514,7 +527,7 @@ export default function S_CustomerForm() {
           {data.photos.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
               {data.photos.map((src, i) => (
-                <img key={i} src={src} alt="" className="w-full aspect-square object-cover rounded-xl" />
+                <img key={i} src={src} alt="" className="w-full aspect-[3/4] object-contain bg-slate-900 rounded-xl" />
               ))}
             </div>
           )}
@@ -796,6 +809,39 @@ export default function S_CustomerForm() {
               <p className="text-xs font-semibold text-brand-700">{fmtDateTime(data.capturedAt)}</p>
             </div>
 
+            {/* GPS status */}
+            {geoState.status === 'idle' || geoState.status === 'fetching' ? (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                <div className="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                <p className="text-xs font-semibold text-slate-600">GPS location dhoond raha hai...</p>
+              </div>
+            ) : geoState.status === 'success' ? (
+              <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                <p className="text-xs font-bold text-green-700">GPS Ready — photo par stamp lagega</p>
+                <p className="text-[11px] font-mono text-green-600 mt-0.5">
+                  LAT: {geoState.geo.lat.toFixed(5)}  LNG: {geoState.geo.lng.toFixed(5)}  (+-{geoState.geo.accuracy}m)
+                </p>
+              </div>
+            ) : geoState.status === 'denied' ? (
+              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <p className="text-xs font-bold text-red-700">Location Permission Denied</p>
+                <p className="text-xs text-red-500 mt-0.5">Browser settings → Site Settings → Location → Allow karein, phir page reload karein.</p>
+              </div>
+            ) : (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold text-amber-700">GPS Signal Nahi Mila</p>
+                  <p className="text-xs text-amber-600 mt-0.5">Photo bina coordinates ke upload hogi</p>
+                </div>
+                <button
+                  onClick={fetchGeo}
+                  className="flex-shrink-0 text-xs font-bold text-amber-700 border border-amber-300 rounded-lg px-3 py-1.5 active:scale-95"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
             {/* Progress */}
             <div className="bg-white border border-slate-200 rounded-xl px-4 py-3">
               <div className="flex justify-between items-center mb-2">
@@ -847,8 +893,8 @@ export default function S_CustomerForm() {
             {data.photos.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
                 {data.photos.map((src, i) => (
-                  <div key={i} className="relative rounded-xl overflow-hidden aspect-square bg-slate-200">
-                    <img src={src} alt="" className="w-full h-full object-cover" />
+                  <div key={i} className="relative rounded-xl overflow-hidden aspect-[3/4] bg-slate-900">
+                    <img src={src} alt="" className="w-full h-full object-contain" />
                     <button
                       onClick={() => removePhoto(i)}
                       className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"

@@ -117,7 +117,7 @@ export default function S_QuickCreate() {
       <div className="bg-white pt-12 pb-5 px-5 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
+            <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="AR Financiers" className="h-6 w-auto object-contain mb-1" />
             <h1 className="text-xl font-extrabold leading-tight mt-0.5">🏪 Nayi Lead Banao</h1>
             {salesmanName && <p className="text-xs text-brand-400 mt-0.5">👤 {salesmanName}</p>}
           </div>

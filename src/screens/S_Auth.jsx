@@ -68,7 +68,7 @@ export default function S_Auth() {
       <div className="bg-white pt-16 pb-10 px-6 flex-shrink-0 flex flex-col items-center border-b border-slate-100">
         <img
           src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
-          alt="Ar Financier's"
+          alt="AR Financiers"
           className="h-14 w-auto object-contain mb-3"
         />
         <p className="text-brand-600 text-sm font-semibold mt-1">Field Sales Platform</p>

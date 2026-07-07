@@ -1,18 +1,38 @@
-export function getGeoLocation() {
+function fromPos(p) {
+  return { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: Math.round(p.coords.accuracy) }
+}
+
+// Returns { geo: {lat,lng,accuracy}|null, errorCode: null|1|2|3|-1 }
+// errorCode: null=ok  1=permission_denied  2=unavailable  3=timeout  -1=not_supported
+export function getGeoLocationWithStatus() {
   return new Promise(resolve => {
-    if (!navigator.geolocation) { resolve(null); return }
-    let settled = false
-    function done(val) { if (!settled) { settled = true; resolve(val) } }
+    if (!navigator.geolocation) { resolve({ geo: null, errorCode: -1 }); return }
+
+    // Step 1: try GPS (high accuracy, 6 s)
     navigator.geolocation.getCurrentPosition(
-      pos => done({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) }),
-      () => done(null),
-      { timeout: 8000, enableHighAccuracy: false, maximumAge: 30000 }
+      p => resolve({ geo: fromPos(p), errorCode: null }),
+      firstErr => {
+        // Permission denied — no point retrying with different accuracy
+        if (firstErr.code === 1) { resolve({ geo: null, errorCode: 1 }); return }
+        // Step 2: fall back to network-based location (10 s, accepts 60 s old cache)
+        navigator.geolocation.getCurrentPosition(
+          p => resolve({ geo: fromPos(p), errorCode: null }),
+          lastErr => resolve({ geo: null, errorCode: lastErr.code }),
+          { timeout: 10000, enableHighAccuracy: false, maximumAge: 60000 }
+        )
+      },
+      { timeout: 6000, enableHighAccuracy: true, maximumAge: 15000 }
     )
   })
 }
 
+// Simple wrapper — returns geo or null (used inside stampPhoto)
+export function getGeoLocation() {
+  return getGeoLocationWithStatus().then(r => r.geo)
+}
+
 function formatCoord(val, pos, neg) {
-  return `${Math.abs(val).toFixed(4)}${val >= 0 ? pos : neg}`
+  return `${Math.abs(val).toFixed(5)}${val >= 0 ? pos : neg}`
 }
 
 function formatDateTime(date) {
@@ -34,50 +54,42 @@ export function stampPhoto(file, geo) {
       canvas.height = H
       const ctx = canvas.getContext('2d')
 
-      // Draw original image
       ctx.drawImage(img, 0, 0, W, H)
 
-      // ── Stamp layout ──────────────────────────────────────────
-      const barH    = Math.max(72, Math.round(H * 0.10))
-      const fontSize = Math.max(18, Math.round(barH * 0.26))
-      const pad     = Math.round(barH * 0.15)
-      const lineGap = Math.round(fontSize * 1.45)
+      // Stamp bar — 15% height, minimum 90px
+      const barH    = Math.max(90, Math.round(H * 0.15))
+      const fontSize = Math.max(24, Math.round(barH * 0.28))
+      const pad     = Math.round(barH * 0.12)
+      const lineGap = Math.round(fontSize * 1.55)
 
-      // Solid dark background bar
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.80)'
+      // Dark background bar
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.82)'
       ctx.fillRect(0, H - barH, W, barH)
 
       // Green accent line at top of bar
+      const accentH = Math.max(5, Math.round(barH * 0.055))
       ctx.fillStyle = '#2E5835'
-      ctx.fillRect(0, H - barH, W, Math.max(4, Math.round(barH * 0.05)))
+      ctx.fillRect(0, H - barH, W, accentH)
 
-      // ── Text (no emojis — unreliable on canvas) ───────────────
       ctx.font         = `bold ${fontSize}px Arial, Helvetica, sans-serif`
       ctx.fillStyle    = '#FFFFFF'
       ctx.textBaseline = 'top'
 
       const geoText = geo
-        ? `GPS: ${formatCoord(geo.lat, 'N', 'S')}, ${formatCoord(geo.lng, 'E', 'W')}  (+/-${geo.accuracy}m)`
+        ? `LAT: ${formatCoord(geo.lat, 'N', 'S')}  LNG: ${formatCoord(geo.lng, 'E', 'W')}  (+-${geo.accuracy}m)`
         : 'GPS: Location unavailable'
 
-      const timeText = `${formatDateTime(new Date())}   AR Financier's`
+      const timeText = `${formatDateTime(new Date())}   AR Financiers`
 
-      ctx.fillText(geoText,  pad, H - barH + pad + 4)
-      ctx.fillText(timeText, pad, H - barH + pad + 4 + lineGap)
+      ctx.fillText(geoText,  pad, H - barH + accentH + pad)
+      ctx.fillText(timeText, pad, H - barH + accentH + pad + lineGap)
 
-      // ── Export via dataURL (more reliable than toBlob on mobile) ──
-      try {
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
-        fetch(dataUrl)
-          .then(r => r.blob())
-          .then(blob => {
-            const name = file.name.replace(/\.[^.]+$/, '') + '_stamped.jpg'
-            resolve(new File([blob], name, { type: 'image/jpeg' }))
-          })
-          .catch(reject)
-      } catch (e) {
-        reject(e)
-      }
+      // Export via toBlob (memory-efficient, no base64 round-trip)
+      canvas.toBlob(blob => {
+        if (!blob) { reject(new Error('Canvas toBlob returned null')); return }
+        const name = file.name.replace(/\.[^.]+$/, '') + '_stamped.jpg'
+        resolve(new File([blob], name, { type: 'image/jpeg' }))
+      }, 'image/jpeg', 0.92)
     }
 
     img.onerror = () => reject(new Error('Image load failed'))

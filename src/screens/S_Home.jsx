@@ -33,7 +33,7 @@ export default function S_Home() {
         <div className="flex items-center justify-between">
           <img
             src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png"
-            alt="Ar Financier's"
+            alt="AR Financiers"
             className="h-9 w-auto object-contain"
           />
           {salesman && (

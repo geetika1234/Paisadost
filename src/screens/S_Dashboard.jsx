@@ -96,7 +96,7 @@ function LoginView({ onLogin, onClose }) {
     <div className="phone-shell flex flex-col bg-white" style={{ minHeight: '100dvh' }}>
       <div className="bg-white pt-12 pb-5 px-5 flex-shrink-0 flex items-center justify-between border-b border-slate-100">
         <div>
-          <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-6 w-auto object-contain mb-1" />
+          <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="AR Financiers" className="h-6 w-auto object-contain mb-1" />
           <h1 className="text-xl font-extrabold leading-tight mt-0.5 text-slate-800">📊 Sales Dashboard</h1>
         </div>
         <button onClick={onClose} className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-slate-500 text-lg leading-none">×</button>
@@ -576,7 +576,7 @@ export default function S_Dashboard() {
       <div className="bg-white pt-12 pb-4 px-5 flex-shrink-0 border-b border-slate-100">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="Ar Financier's" className="h-7 w-auto object-contain mb-1" />
+            <img src="https://iqibabyksgjdbnrfjeog.supabase.co/storage/v1/object/public/photos/LOGO.png" alt="AR Financiers" className="h-7 w-auto object-contain mb-1" />
             <h1 className="text-lg font-extrabold leading-tight mt-0.5 text-slate-800">📊 Sales Dashboard</h1>
           </div>
           <button onClick={closeDashboard} className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-slate-500 text-xl leading-none">×</button>

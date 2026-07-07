@@ -1,5 +1,5 @@
 /**
- * Ar Financier's — Calculation Engine
+ * AR Financiers — Calculation Engine
  * All formulas translated from: "ROI and cost of delay nbfc.xlsx"
  *
  * Sheet: Cost_of_Delay  →  calculateCOD()

@@ -26,8 +26,18 @@ export async function signIn({ mobile, password }) {
     email: toEmail(mobile),
     password,
   })
-  if (error) throw error
-  return data
+  if (!error) return data
+
+  // Fallback: users registered before rebrand have @paisadost.local domain
+  if (error.message === 'Invalid login credentials') {
+    const { data: data2, error: error2 } = await supabase.auth.signInWithPassword({
+      email: `${mobile.trim()}@paisadost.local`,
+      password,
+    })
+    if (!error2) return data2
+  }
+
+  throw error
 }
 
 export async function signOut() {
