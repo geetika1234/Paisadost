@@ -827,7 +827,10 @@ export default function S_CustomerForm() {
             )}
             {geoState.status === 'success' && (
               <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-                <p className="text-xs font-bold text-green-700">GPS Ready — coordinates stamp honge</p>
+                <p className="text-xs font-bold text-green-700">GPS Ready — stamp lagega</p>
+                {geoState.geo.area && (
+                  <p className="text-xs font-semibold text-green-800 mt-0.5">{geoState.geo.area}</p>
+                )}
                 <p className="text-[11px] font-mono text-green-600 mt-0.5">
                   LAT: {geoState.geo.lat.toFixed(5)}  LNG: {geoState.geo.lng.toFixed(5)}  (+-{geoState.geo.accuracy}m)
                 </p>

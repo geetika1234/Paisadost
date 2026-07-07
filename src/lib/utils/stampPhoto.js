@@ -2,22 +2,45 @@ function fromPos(p) {
   return { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: Math.round(p.coords.accuracy) }
 }
 
-// Returns { geo: {lat,lng,accuracy}|null, errorCode: null|1|2|3|-1 }
+// Reverse geocode lat/lng → "Locality, City" using BigDataCloud (free, no API key, CORS-safe)
+async function reverseGeocode(lat, lng) {
+  try {
+    const ctrl  = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 5000)
+    const res   = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`,
+      { signal: ctrl.signal }
+    )
+    clearTimeout(timer)
+    if (!res.ok) return null
+    const json  = await res.json()
+    const parts = [json.locality, json.city].filter(v => v && v.trim())
+    return parts.length ? parts.join(', ') : null
+  } catch {
+    return null
+  }
+}
+
+// Returns { geo: {lat,lng,accuracy,area}|null, errorCode: null|1|2|3|-1 }
 // errorCode: null=ok  1=permission_denied  2=unavailable  3=timeout  -1=not_supported
-// Uses network/WiFi location (enableHighAccuracy:false) — fast on mobile (1-3s),
-// works indoors, doesn't wait for GPS satellite lock.
 export function getGeoLocationWithStatus() {
   return new Promise(resolve => {
     if (!navigator.geolocation) { resolve({ geo: null, errorCode: -1 }); return }
     navigator.geolocation.getCurrentPosition(
-      p => resolve({ geo: fromPos(p), errorCode: null }),
+      async p => {
+        const lat      = p.coords.latitude
+        const lng      = p.coords.longitude
+        const accuracy = Math.round(p.coords.accuracy)
+        const area     = await reverseGeocode(lat, lng)
+        resolve({ geo: { lat, lng, accuracy, area }, errorCode: null })
+      },
       err => resolve({ geo: null, errorCode: err.code }),
       { timeout: 15000, enableHighAccuracy: false, maximumAge: 60000 }
     )
   })
 }
 
-// Simple wrapper — returns geo or null (used inside stampPhoto)
+// Simple wrapper — returns geo or null
 export function getGeoLocation() {
   return getGeoLocationWithStatus().then(r => r.geo)
 }
@@ -44,21 +67,23 @@ export function stampPhoto(file, geo) {
       canvas.width  = W
       canvas.height = H
       const ctx = canvas.getContext('2d')
-
       ctx.drawImage(img, 0, 0, W, H)
 
-      // Stamp bar — 15% height, minimum 90px
-      const barH    = Math.max(90, Math.round(H * 0.15))
-      const fontSize = Math.max(24, Math.round(barH * 0.28))
-      const pad     = Math.round(barH * 0.12)
-      const lineGap = Math.round(fontSize * 1.55)
+      // 3 lines when area name is available, 2 lines otherwise
+      const hasArea  = !!(geo?.area)
+      const barH     = hasArea
+        ? Math.max(120, Math.round(H * 0.18))
+        : Math.max(90,  Math.round(H * 0.15))
+      const fontSize = Math.max(20, Math.round(barH * 0.20))
+      const lineGap  = Math.round(fontSize * 1.15)
+      const pad      = Math.round(barH * 0.08)
+      const accentH  = Math.max(5, Math.round(barH * 0.05))
 
       // Dark background bar
       ctx.fillStyle = 'rgba(0, 0, 0, 0.82)'
       ctx.fillRect(0, H - barH, W, barH)
 
       // Green accent line at top of bar
-      const accentH = Math.max(5, Math.round(barH * 0.055))
       ctx.fillStyle = '#2E5835'
       ctx.fillRect(0, H - barH, W, accentH)
 
@@ -66,16 +91,20 @@ export function stampPhoto(file, geo) {
       ctx.fillStyle    = '#FFFFFF'
       ctx.textBaseline = 'top'
 
-      const geoText = geo
+      const geoText  = geo
         ? `LAT: ${formatCoord(geo.lat, 'N', 'S')}  LNG: ${formatCoord(geo.lng, 'E', 'W')}  (+-${geo.accuracy}m)`
         : 'GPS: Location unavailable'
-
       const timeText = `${formatDateTime(new Date())}   AR Financiers`
 
-      ctx.fillText(geoText,  pad, H - barH + accentH + pad)
-      ctx.fillText(timeText, pad, H - barH + accentH + pad + lineGap)
+      let y = H - barH + accentH + pad
+      if (hasArea) {
+        ctx.fillText(geo.area, pad, y)
+        y += lineGap
+      }
+      ctx.fillText(geoText, pad, y)
+      y += lineGap
+      ctx.fillText(timeText, pad, y)
 
-      // Export via toBlob (memory-efficient, no base64 round-trip)
       canvas.toBlob(blob => {
         if (!blob) { reject(new Error('Canvas toBlob returned null')); return }
         const name = file.name.replace(/\.[^.]+$/, '') + '_stamped.jpg'

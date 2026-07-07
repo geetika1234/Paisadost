@@ -24,6 +24,7 @@ export default function S_AdminPanel() {
   const [allLeads,      setAllLeads]      = useState([])
   const [leadsLoading,  setLeadsLoading]  = useState(false)
   const [expandedLead,  setExpandedLead]  = useState(null)
+  const [filterBy,      setFilterBy]      = useState('all') // 'all' | 'unassigned' | profileId
 
   useEffect(() => { load() }, [])
   useEffect(() => { if (tab === 'leads') loadLeads() }, [tab])
@@ -72,6 +73,28 @@ export default function S_AdminPanel() {
   const pending  = profiles.filter(p => !p.is_approved)
   const approved = profiles.filter(p => p.is_approved)
   const shown    = tab === 'pending' ? pending : approved
+
+  // ── Leads filter ────────────────────────────────────────────────────────────
+  const filteredLeads = allLeads.filter(l => {
+    if (filterBy === 'all')        return true
+    if (filterBy === 'unassigned') return !l.assigned_to
+    return l.assigned_to === filterBy
+  })
+
+  // Build chip list: All + users who have ≥1 lead + Unassigned (if any)
+  const assigneeCounts = {}
+  let unassignedCount  = 0
+  allLeads.forEach(l => {
+    if (l.assigned_to) assigneeCounts[l.assigned_to] = (assigneeCounts[l.assigned_to] || 0) + 1
+    else               unassignedCount++
+  })
+  const filterChips = [
+    { key: 'all',        label: 'All',         count: allLeads.length },
+    ...approved
+      .filter(p => assigneeCounts[p.id])
+      .map(p => ({ key: p.id, label: p.fullname, count: assigneeCounts[p.id] })),
+    ...(unassignedCount > 0 ? [{ key: 'unassigned', label: 'Unassigned', count: unassignedCount }] : []),
+  ]
 
   return (
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
@@ -147,6 +170,28 @@ export default function S_AdminPanel() {
               </div>
             )}
 
+            {/* Filter chips */}
+            {!leadsLoading && allLeads.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
+                {filterChips.map(chip => (
+                  <button
+                    key={chip.key}
+                    onClick={() => setFilterBy(chip.key)}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all active:scale-95
+                      ${filterBy === chip.key
+                        ? 'bg-brand-600 border-brand-600 text-white'
+                        : 'bg-white border-slate-200 text-slate-600'}`}
+                  >
+                    {chip.label}
+                    <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full
+                      ${filterBy === chip.key ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                      {chip.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {!leadsLoading && allLeads.length === 0 && (
               <div className="bg-white rounded-2xl border border-slate-200 px-4 py-10 text-center">
                 <p className="text-3xl mb-2">📋</p>
@@ -154,7 +199,18 @@ export default function S_AdminPanel() {
               </div>
             )}
 
-            {allLeads.map(lead => {
+            {!leadsLoading && allLeads.length > 0 && filteredLeads.length === 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 px-4 py-10 text-center">
+                <p className="text-3xl mb-2">🔍</p>
+                <p className="text-sm font-bold text-slate-500">
+                  {filterBy === 'unassigned'
+                    ? 'Koi unassigned lead nahi'
+                    : `${filterChips.find(c => c.key === filterBy)?.label || 'Is user'} ke koi leads nahi`}
+                </p>
+              </div>
+            )}
+
+            {filteredLeads.map(lead => {
               const assignee     = approved.find(p => p.id === lead.assigned_to)
               const isExpanded   = expandedLead === lead.customer_id
               const stageInfo    = STAGE_LABEL[lead.stage] || STAGE_LABEL.visited
