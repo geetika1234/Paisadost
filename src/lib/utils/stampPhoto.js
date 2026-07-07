@@ -2,36 +2,27 @@ function fromPos(p) {
   return { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: Math.round(p.coords.accuracy) }
 }
 
-// Reverse geocode lat/lng → "Sub-area, City"
-// BigDataCloud's top-level `locality` field is often blank for India;
-// the real neighbourhood name lives in localityInfo.informative / administrative.
+// Reverse geocode lat/lng → "Suburb, City" using OpenStreetMap Nominatim
+// (free, no API key, CORS-safe, much better India coverage than BigDataCloud)
 async function reverseGeocode(lat, lng) {
   try {
     const ctrl  = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 5000)
     const res   = await fetch(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`,
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
       { signal: ctrl.signal }
     )
     clearTimeout(timer)
     if (!res.ok) return null
     const json  = await res.json()
+    const addr  = json.address || {}
 
-    const city  = json.city?.trim() || null
-    const info  = json.localityInfo?.informative  || []
-    const admin = json.localityInfo?.administrative || []
+    // suburb = mohalla / area (e.g. "Sodala")
+    // neighbourhood = colony (e.g. "Hasanpura-C") — used only if no suburb
+    const subArea = addr.suburb || addr.neighbourhood || addr.quarter || null
+    const city    = addr.city   || addr.town          || addr.village || null
 
-    // Most specific name: neighbourhood > suburb > highest admin sub-area > locality field
-    const neighbourhood = info.find(i => i.description === 'neighbourhood')?.name?.trim()
-    const suburb        = info.find(i => i.description === 'suburb')?.name?.trim()
-    const adminSub      = admin
-      .filter(a => a.adminLevel >= 9)
-      .sort((a, b) => b.adminLevel - a.adminLevel)[0]?.name?.trim()
-    const localityField = json.locality?.trim() || null
-
-    const subArea = neighbourhood || suburb || adminSub || localityField || null
-
-    if (!city && !subArea) return null
+    if (!subArea && !city) return null
     if (!subArea || subArea === city) return city
     return `${subArea}, ${city}`
   } catch {
