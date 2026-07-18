@@ -407,6 +407,7 @@ export default function S_Dashboard() {
       prepTimeOther:       customer.prepTimeOther       || '',
       problems:            customer.problems            || [],
       decisionDelay:       customer.decisionDelay       || '',
+      decisionDelayDetail: customer.decisionDelayDetail || '',
       mindset:             customer.mindset             || [],
       mindsetOther:        customer.mindsetOther        || '',
       photoUrls:           customer.photoUrls           || [],

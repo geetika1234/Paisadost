@@ -175,6 +175,7 @@ export async function getVisitedCustomers(salesman) {
       prepTime:           d.prepTime           || '',
       prepTimeOther:      d.prepTimeOther      || '',
       decisionDelay:      d.decisionDelay      || '',
+      decisionDelayDetail:d.decisionDelayDetail|| '',
       mindsetOther:       d.mindsetOther       || '',
       photoUrls:          Array.isArray(d.photoUrls) ? d.photoUrls : [],
     }
@@ -366,6 +367,7 @@ export async function getAssignedLeads(profileId) {
       prepTime:            d.prepTime            || '',
       prepTimeOther:       d.prepTimeOther       || '',
       decisionDelay:       d.decisionDelay       || '',
+      decisionDelayDetail: d.decisionDelayDetail || '',
       mindsetOther:        d.mindsetOther        || '',
       photoUrls:           Array.isArray(d.photoUrls) ? d.photoUrls : [],
     }

@@ -36,7 +36,7 @@ const MONTHS = [
 
 const OFF_SEASON_SALES = [
   '₹50,000 से कम', '₹50,000 - ₹1.5 लाख', '₹1.5 - ₹2.5 लाख',
-  '₹2.5 - ₹3.5 लाख', '₹3.5 लाख से ऊपर',
+  '₹2.5 - ₹3.5 लाख', '₹3.5 - ₹5 लाख', '₹5 लाख से ऊपर',
 ]
 
 const INVESTMENT_TIMING = [
@@ -50,7 +50,7 @@ const PROBLEMS = [
   'स्टॉक की कमी', 'रोज़मर्रा के खर्चे', 'ग्राहक में उधार का पैसा फंस जाना',
   'कम्पटीशन', 'सीजन डिमांड पूरी नहीं कर पाना', 'सप्लायर/सेल्समेन का दबाव',
   'सप्लायर स्कीम/डिस्काउंट का फायदा न उठा पाना', 'कम सेल्स / ग्राहक कम आना',
-  'दुकान का नवीनीकरण/डिस्प्ले', 'परिवार की जिम्मेदारियां', 'कोई बड़ी समस्या नहीं',
+  'दुकान का नवीनीकरण/डिस्प्ले', 'कोई बड़ी समस्या नहीं',
 ]
 
 const MINDSET = ['व्यापार आगे बढ़ाना', 'जैसा चल रहा है वैसे चलाना']
@@ -83,6 +83,7 @@ const EMPTY = {
   investBeforeSeason:  '',   // exact days before season they prepare (number input)
   problems:            [],
   decisionDelay:       '',
+  decisionDelayDetail: '',
   mindset:             [],
   mindsetOther:        '',
   // Step 3
@@ -94,9 +95,9 @@ const EMPTY = {
 
 function SectionHeader({ num, title, error }) {
   return (
-    <div className="flex items-start gap-2 mb-3">
+    <div className="flex items-start gap-2.5 mb-4">
       <span className={`flex-shrink-0 w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center ${error ? 'bg-red-500' : 'bg-brand-600'}`}>{num}</span>
-      <p className={`text-sm font-bold leading-snug ${error ? 'text-red-500' : 'text-slate-800'}`}>{title}</p>
+      <p className={`text-sm font-bold leading-relaxed pt-0.5 ${error ? 'text-red-500' : 'text-slate-800'}`}>{title}</p>
     </div>
   )
 }
@@ -106,7 +107,7 @@ function CheckItem({ label, checked, onChange, disabled }) {
     <button
       onClick={onChange}
       disabled={disabled}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all active:scale-[0.98] mb-1.5
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all active:scale-[0.98] mb-2
         ${checked ? 'bg-white border-brand-400' : 'bg-white border-slate-200'}
         ${disabled && !checked ? 'opacity-40' : ''}`}
     >
@@ -123,7 +124,7 @@ function RadioItem({ label, checked, onChange }) {
   return (
     <button
       onClick={onChange}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all active:scale-[0.98] mb-1.5
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all active:scale-[0.98] mb-2
         ${checked ? 'bg-white border-brand-400' : 'bg-white border-slate-200'}`}
     >
       <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center
@@ -148,7 +149,7 @@ function OtherInput({ value, onChange, placeholder = 'Other likho...' }) {
 }
 
 function Card({ children }) {
-  return <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-4">{children}</div>
+  return <div className="bg-white rounded-2xl border border-slate-200 p-4 py-5 mb-5">{children}</div>
 }
 
 // ── Login Gate ────────────────────────────────────────────────────────────────
@@ -239,6 +240,7 @@ export default function S_CustomerForm() {
         prepTimeOther:       d.prepTimeOther       || '',
         problems:            d.problems            || [],
         decisionDelay:       d.decisionDelay       || '',
+        decisionDelayDetail: d.decisionDelayDetail || '',
         mindset:             d.mindset             || [],
         mindsetOther:        d.mindsetOther        || '',
         // Show previously saved photos (Supabase URLs used directly as img src)
@@ -482,6 +484,7 @@ export default function S_CustomerForm() {
         prepTimeOther:       data.prepTimeOther,
         problems:            data.problems,
         decisionDelay:       data.decisionDelay,
+        decisionDelayDetail: data.decisionDelayDetail,
         mindset:             data.mindset,
         mindsetOther:        data.mindsetOther,
         photoUrls:           photoUrls,
@@ -618,10 +621,10 @@ export default function S_CustomerForm() {
                 disabled={!tappable}
                 onClick={() => tappable && setStep(i)}
               >
-                <div className={`h-1.5 rounded-full transition-all ${done ? 'bg-green-400' : active ? 'bg-white' : 'bg-white/30'}`} />
+                <div className={`h-1.5 rounded-full transition-all ${done ? 'bg-green-400' : active ? 'bg-brand-600' : 'bg-slate-200'}`} />
                 <div className="flex items-center gap-1 mt-1">
-                  {done && <span className="text-green-400 text-[10px] font-bold">✓</span>}
-                  <p className={`text-[10px] font-medium truncate ${active ? 'text-white' : done ? 'text-green-300' : 'text-brand-400'}`}>{s.label}</p>
+                  {done && <span className="text-green-500 text-[10px] font-bold">✓</span>}
+                  <p className={`text-[10px] font-medium truncate ${active ? 'text-brand-700 font-bold' : done ? 'text-green-600' : 'text-brand-400'}`}>{s.label}</p>
                 </div>
               </button>
             )
@@ -715,7 +718,7 @@ export default function S_CustomerForm() {
 
             {/* Q2 Season */}
             <Card>
-              <SectionHeader num="2" title="व्यापार का सीजन (सबसे ज़्यादा बिक्री का समय) *" error={showErrors && !q2Valid} />
+              <SectionHeader num="2" title="आपकी लाइन में सीजन कब आता है? (सबसे ज़्यादा बिक्री का समय) *" error={showErrors && !q2Valid} />
               {SEASONS.map(opt => (
                 <CheckItem key={opt} label={opt} checked={data.seasons.includes(opt)} onChange={() => toggleArr('seasons', opt)} />
               ))}
@@ -724,7 +727,7 @@ export default function S_CustomerForm() {
 
             {/* Q3 Peak Months */}
             <Card>
-              <SectionHeader num="3" title="साल के किस महीने में सबसे ज़्यादा बिक्री होती है? *" error={showErrors && !q3Valid} />
+              <SectionHeader num="3" title="अगर पूरे साल की बात करें, तो सबसे ज़्यादा बिक्री किन महीनों में होती है? *" error={showErrors && !q3Valid} />
               <div className="grid grid-cols-3 gap-1.5">
                 {MONTHS.map(m => {
                   const checked = data.peakMonths.includes(m)
@@ -740,31 +743,18 @@ export default function S_CustomerForm() {
                   )
                 })}
               </div>
+              <button
+                onClick={() => set('peakMonths', data.peakMonths.length === MONTHS.length ? [] : [...MONTHS])}
+                className={`w-full mt-2 py-2 rounded-xl text-xs font-semibold border-2 transition-all active:scale-95
+                  ${data.peakMonths.length === MONTHS.length ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-brand-300 text-brand-700'}`}
+              >
+                ✓ साल भर (सभी 12 महीने)
+              </button>
             </Card>
 
-            {/* Q4 Off Season Sales */}
+            {/* Q4 Prep Time */}
             <Card>
-              <SectionHeader num="4" title="ऑफ सीजन बिक्री (महीने की) *" error={showErrors && !q4Valid} />
-              {OFF_SEASON_SALES.map(opt => (
-                <RadioItem key={opt} label={opt} checked={data.offSeasonSales === opt} onChange={() => set('offSeasonSales', opt)} />
-              ))}
-              <RadioItem label="Other" checked={data.offSeasonSales === 'other'} onChange={() => set('offSeasonSales', 'other')} />
-              {data.offSeasonSales === 'other' && (
-                <OtherInput value={data.offSeasonSalesOther} onChange={v => set('offSeasonSalesOther', v)} placeholder="₹ amount likho..." />
-              )}
-            </Card>
-
-            {/* Q5 Investment Timing */}
-            <Card>
-              <SectionHeader num="5" title="आप बिजनेस में नया पैसा कब लगाते हो? *" error={showErrors && !q5Valid} />
-              {INVESTMENT_TIMING.map(opt => (
-                <RadioItem key={opt} label={opt} checked={data.investmentTiming === opt} onChange={() => set('investmentTiming', opt)} />
-              ))}
-            </Card>
-
-            {/* Q6 Prep Time */}
-            <Card>
-              <SectionHeader num="6" title="सीजन के कितने दिन पहले तैयारी करते हो? *" error={showErrors && !q6Valid} />
+              <SectionHeader num="4" title="सीजन शुरू होने से पहले आमतौर पर कितने दिन पहले तैयारी शुरू करनी पड़ती है? *" error={showErrors && !q6Valid} />
               {PREP_TIME.map(opt => (
                 <RadioItem key={opt} label={opt} checked={data.prepTime === opt} onChange={() => set('prepTime', opt)} />
               ))}
@@ -774,9 +764,29 @@ export default function S_CustomerForm() {
               )}
             </Card>
 
+            {/* Q5 Investment Timing */}
+            <Card>
+              <SectionHeader num="5" title="किस समय बिजनेस में सबसे ज़्यादा पैसा लगाना पड़ता है? *" error={showErrors && !q5Valid} />
+              {INVESTMENT_TIMING.map(opt => (
+                <RadioItem key={opt} label={opt} checked={data.investmentTiming === opt} onChange={() => set('investmentTiming', opt)} />
+              ))}
+            </Card>
+
+            {/* Q6 Off Season Sales */}
+            <Card>
+              <SectionHeader num="6" title="और जब सीजन नहीं रहता, तब महीने की बिक्री लगभग कितनी रह जाती है? (ऑफ सीजन बिक्री) *" error={showErrors && !q4Valid} />
+              {OFF_SEASON_SALES.map(opt => (
+                <RadioItem key={opt} label={opt} checked={data.offSeasonSales === opt} onChange={() => set('offSeasonSales', opt)} />
+              ))}
+              <RadioItem label="Other" checked={data.offSeasonSales === 'other'} onChange={() => set('offSeasonSales', 'other')} />
+              {data.offSeasonSales === 'other' && (
+                <OtherInput value={data.offSeasonSalesOther} onChange={v => set('offSeasonSalesOther', v)} placeholder="₹ amount likho..." />
+              )}
+            </Card>
+
             {/* Q7 Problems (max 2) */}
             <Card>
-              <SectionHeader num="7" title="इन में से कौनसी समस्या सबसे ज़्यादा है? (कोई दो चुनें) *" error={showErrors && !q7Valid} />
+              <SectionHeader num="7" title="आजकल आपके हिसाब से बिजनेस को आगे बढ़ाने में सबसे बड़ी रुकावट क्या है? (कोई दो चुनें) *" error={showErrors && !q7Valid} />
               {data.problems.length >= 2 && (
                 <p className="text-xs text-amber-600 font-semibold mb-2">✓ 2 problems select ho gayi — change karne ke liye pehle ek hatao</p>
               )}
@@ -792,14 +802,17 @@ export default function S_CustomerForm() {
 
             {/* Q8 Decision Delay */}
             <Card>
-              <SectionHeader num="8" title="क्या कभी पैसों की वजह से बिजनेस का डिसीजन टालना पड़ा है? *" error={showErrors && !q8Valid} />
+              <SectionHeader num="8" title="क्या कभी सिर्फ पैसों की कमी की वजह से कोई अच्छा बिजनेस मौका छोड़ना या टालना पड़ा? *" error={showErrors && !q8Valid} />
               <RadioItem label="हाँ" checked={data.decisionDelay === 'हाँ'} onChange={() => set('decisionDelay', 'हाँ')} />
               <RadioItem label="नहीं" checked={data.decisionDelay === 'नहीं'} onChange={() => set('decisionDelay', 'नहीं')} />
+              {data.decisionDelay === 'हाँ' && (
+                <OtherInput value={data.decisionDelayDetail} onChange={v => set('decisionDelayDetail', v)} placeholder="जैसे? थोड़ा बताइए..." />
+              )}
             </Card>
 
             {/* Q9 Mindset */}
             <Card>
-              <SectionHeader num="9" title="आप किस तरफ ज़्यादा ध्यान दे रहे हैं? *" error={showErrors && !q9Valid} />
+              <SectionHeader num="9" title="अभी market में दो तरह के लोग हैं—कुछ लोग अपना व्यापार बढ़ा रहे हैं और कुछ लोग अभी जैसे चल रहा है उसे मेंटेन करने पर... आप किस तरफ ज़्यादा ध्यान दे रहे हैं? *" error={showErrors && !q9Valid} />
               {MINDSET.map(opt => (
                 <RadioItem key={opt} label={opt} checked={data.mindset[0] === opt} onChange={() => set('mindset', [opt])} />
               ))}

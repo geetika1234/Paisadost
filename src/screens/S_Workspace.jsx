@@ -170,6 +170,7 @@ export default function S_Workspace() {
       prepTimeOther:       activeCustomer.prepTimeOther       || '',
       problems:            activeCustomer.problems            || [],
       decisionDelay:       activeCustomer.decisionDelay       || '',
+      decisionDelayDetail: activeCustomer.decisionDelayDetail || '',
       mindset:             activeCustomer.mindset             || [],
       mindsetOther:        activeCustomer.mindsetOther        || '',
       photoUrls:           activeCustomer.photoUrls           || [],
