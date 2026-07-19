@@ -214,6 +214,7 @@ const MIN_PHOTOS = 3
 
 export default function S_CustomerForm() {
   const { closeCustomerForm, activateCustomer, update, customerFormInitialData, activeCustomer, inputs, profile } = useApp()
+  const isAdmin = profile?.role === 'admin'
   const [salesmanName, setSalesmanName] = useState(() => getCurrentUser())
   const [step, setStep]           = useState(0)
   const [data, setData]           = useState(() => {
@@ -911,7 +912,7 @@ export default function S_CustomerForm() {
                 <p className="text-[10px] text-brand-500">Thoda wait karein</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
+              <div className={`grid gap-3 ${isAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 <button
                   onClick={() => cameraRef.current.click()}
                   className="bg-white border-2 border-dashed border-brand-300 rounded-2xl py-6 flex flex-col items-center gap-2 active:scale-95 transition-all"
@@ -920,20 +921,24 @@ export default function S_CustomerForm() {
                   <p className="text-xs font-bold text-brand-700">Camera se lo</p>
                   <p className="text-[10px] text-brand-400">GPS auto-stamp</p>
                 </button>
-                <button
-                  onClick={() => galleryRef.current.click()}
-                  className="bg-white border-2 border-dashed border-slate-300 rounded-2xl py-6 flex flex-col items-center gap-2 active:scale-95 transition-all"
-                >
-                  <span className="text-3xl">🖼️</span>
-                  <p className="text-xs font-bold text-slate-600">Gallery se upload</p>
-                  <p className="text-[10px] text-slate-400">GPS auto-stamp</p>
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => galleryRef.current.click()}
+                    className="bg-white border-2 border-dashed border-slate-300 rounded-2xl py-6 flex flex-col items-center gap-2 active:scale-95 transition-all"
+                  >
+                    <span className="text-3xl">🖼️</span>
+                    <p className="text-xs font-bold text-slate-600">Gallery se upload</p>
+                    <p className="text-[10px] text-slate-400">Admin only</p>
+                  </button>
+                )}
               </div>
             )}
 
             {/* Hidden inputs */}
             <input ref={cameraRef}  type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={e => handleFiles(e.target.files)} />
-            <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handleFiles(e.target.files)} />
+            {isAdmin && (
+              <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handleFiles(e.target.files)} />
+            )}
 
             {/* Photo grid */}
             {data.photos.length > 0 && (
