@@ -129,6 +129,21 @@ export default function S_Home() {
           <span className="text-slate-300 text-xl flex-shrink-0">›</span>
         </button>
 
+        {/* Follow-ups */}
+        <button
+          onClick={() => openDashboard('followups')}
+          className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-5 flex items-center gap-4 shadow-sm active:bg-white active:scale-[0.98] transition-all text-left"
+        >
+          <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-2xl flex-shrink-0">
+            📅
+          </div>
+          <div className="flex-1">
+            <p className="text-base font-extrabold text-slate-800">Follow-ups</p>
+            <p className="text-xs text-slate-500 mt-0.5">Aaj kis customer ko call/visit karna hai</p>
+          </div>
+          <span className="text-slate-300 text-xl flex-shrink-0">›</span>
+        </button>
+
         {/* Tips strip */}
         <div className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-4">
           <p className="text-xs font-bold text-amber-700 mb-2">💡 Aaj Ka Target</p>

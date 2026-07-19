@@ -291,8 +291,11 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman, p
       )}
 
       {reminderLabel && (
-        <div className={`px-4 py-1.5 flex items-center gap-2 ${reminderOverdue ? 'bg-red-500' : 'bg-blue-500'}`}>
+        <div className={`px-4 py-1.5 ${reminderOverdue ? 'bg-red-500' : 'bg-blue-500'}`}>
           <span className="text-xs font-extrabold text-white uppercase tracking-widest">{reminderLabel}</span>
+          {reminder?.note && (
+            <p className="text-[11px] font-semibold text-white/90 mt-0.5 leading-snug">🗒️ {reminder.note}</p>
+          )}
         </div>
       )}
 
@@ -403,7 +406,7 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman, p
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export default function S_Dashboard() {
-  const { closeDashboard, openCustomerFormForEdit, activateCustomer, profile } = useApp()
+  const { closeDashboard, openCustomerFormForEdit, activateCustomer, profile, dashboardInitialTab } = useApp()
   const isAdmin = profile?.role === 'admin'
 
   function handleEdit(customer) {
@@ -500,7 +503,7 @@ export default function S_Dashboard() {
   const [customers,        setCustomers]        = useState([])
   const [loading,          setLoading]          = useState(false)
   const [error,            setError]            = useState(null)
-  const [tab,              setTab]              = useState('today')
+  const [tab,              setTab]              = useState(dashboardInitialTab || 'today')
   const [deletingCustomer, setDeletingCustomer] = useState(null)
   const [deleteLoading,    setDeleteLoading]    = useState(false)
   const [deleteSuccess,    setDeleteSuccess]    = useState(false)

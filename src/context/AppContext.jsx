@@ -131,6 +131,7 @@ export function AppProvider({ children }) {
   const [customerFormInitialData, setCustomerFormInitialData] = useState(null)
   const [savedCustomersOpen,      setSavedCustomersOpen]      = useState(false)
   const [dashboardOpen,           setDashboardOpen]           = useState(false)
+  const [dashboardInitialTab,     setDashboardInitialTab]     = useState('today')
   const [quickCreateOpen,         setQuickCreateOpen]         = useState(false)
 
   // ── Inputs helpers ────────────────────────────────────────────────────────
@@ -218,7 +219,12 @@ export function AppProvider({ children }) {
 
       // Modal flags
       savedCustomersOpen, openSavedCustomers: () => setSavedCustomersOpen(true),  closeSavedCustomers: () => setSavedCustomersOpen(false),
-      dashboardOpen,      openDashboard:      () => setDashboardOpen(true),       closeDashboard:      () => setDashboardOpen(false),
+      dashboardOpen,
+      dashboardInitialTab,
+      // Accepts an optional tab key ('today' | 'month' | 'leads' | 'followups').
+      // Guarded because some callers pass this straight to onClick (click event arg).
+      openDashboard:      (tab) => { setDashboardInitialTab(typeof tab === 'string' ? tab : 'today'); setDashboardOpen(true) },
+      closeDashboard:     () => setDashboardOpen(false),
       assistantOpen,      openAssistant:      () => setAssistantOpen(true),       closeAssistant:      () => setAssistantOpen(false),
       painDiscoveryOpen,  openPainDiscovery:  () => setPainDiscoveryOpen(true),   closePainDiscovery:  () => setPainDiscoveryOpen(false),
 
