@@ -29,3 +29,7 @@ CREATE INDEX IF NOT EXISTS reminders_customer_idx
 
 -- No RLS — matches existing convention: only `profiles` has RLS enabled;
 -- customers/events/loans/repayments are open to any authenticated client.
+
+-- ── v2: outcome note captured when a follow-up is marked complete ────────────
+-- Additive and idempotent — safe to re-run this whole file on an existing table.
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS completion_note TEXT;

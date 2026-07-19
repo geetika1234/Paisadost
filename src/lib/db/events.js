@@ -68,6 +68,36 @@ export async function addNote(customerId, text, salesmanId = null) {
 }
 
 /**
+ * getLoanRequirement(customerId)
+ * Latest loan_requirement event for a customer, or null.
+ */
+export async function getLoanRequirement(customerId) {
+  const { data, error } = await supabase
+    .from('events')
+    .select('event_id, data, created_at')
+    .eq('customer_id', customerId)
+    .eq('event_type', 'loan_requirement')
+    .order('created_at', { ascending: false })
+    .limit(1)
+  if (error) throw error
+  return data?.[0] || null
+}
+
+/**
+ * saveLoanRequirement(customerId, data, salesmanId)
+ * Edits the existing loan_requirement event in place if there is one,
+ * otherwise creates it — same pattern the engagement form uses.
+ */
+export async function saveLoanRequirement(customerId, data, salesmanId = null) {
+  const existing = await getLoanRequirement(customerId)
+  if (existing?.event_id) {
+    await updateEventData(existing.event_id, data)
+    return { ...existing, data }
+  }
+  return addEvent(customerId, 'loan_requirement', data, salesmanId)
+}
+
+/**
  * getNotes(customerId)
  * All note_added events for a customer, newest first.
  */

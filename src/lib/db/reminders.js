@@ -64,10 +64,19 @@ export async function getOpenReminders(profileId) {
   return data || []
 }
 
-export async function completeReminder(reminderId) {
+/**
+ * completeReminder(reminderId, completionNote)
+ * Marks a follow-up done. completionNote records what was discussed with
+ * the customer — required by the UI, stored for the lead's history.
+ */
+export async function completeReminder(reminderId, completionNote) {
   const { error } = await supabase
     .from('reminders')
-    .update({ status: 'done', completed_at: new Date().toISOString() })
+    .update({
+      status:          'done',
+      completed_at:    new Date().toISOString(),
+      completion_note: completionNote?.trim() || null,
+    })
     .eq('reminder_id', reminderId)
   if (error) throw error
 }

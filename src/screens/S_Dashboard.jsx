@@ -6,7 +6,6 @@ import {
   saveCustomerResponse,
 } from '../lib/db/dashboard'
 import { deleteCustomer } from '../lib/db/customers'
-import { createReminder, quickDueDate } from '../lib/db/reminders'
 import { PROBLEMS } from '../logic/problems'
 import { calcEMI, calculateCOD, calculateROI } from '../logic/calculations'
 
@@ -194,14 +193,13 @@ function deriveIntent({ response, urgency, capitalNeeded, problemYears, problemM
 
 // ── Customer visit row ────────────────────────────────────────────────────────
 
-function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman, profileId }) {
+function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman }) {
   const painData = customer.painData || null
   const roiData  = customer.roiData  || null
   const [response, setResponse] = useState(customer.response || null)
   const [saving,   setSaving]   = useState(false)
-  const [reminder,        setReminder]        = useState(customer.nextReminder || null)
-  const [reminderSaving,  setReminderSaving]  = useState(false)
-  const [reminderNote,    setReminderNote]    = useState('')
+  // Display only — follow-ups are set/edited in the Workspace
+  const reminder = customer.nextReminder || null
 
   const time = new Date(customer.visitedAt).toLocaleTimeString('en-IN', {
     hour: '2-digit', minute: '2-digit', hour12: true,
@@ -210,16 +208,6 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman, p
   const isCreatedToday = customer.customerCreatedAt
     ? new Date(customer.customerCreatedAt).toDateString() === new Date().toDateString()
     : false
-
-  async function quickSetReminder(days) {
-    if (reminderSaving) return
-    setReminderSaving(true)
-    try {
-      const r = await createReminder(customer.customerId, quickDueDate(days), reminderNote, salesman, profileId)
-      setReminder(r)
-      setReminderNote('')
-    } catch (_) {} finally { setReminderSaving(false) }
-  }
 
   async function handleResponse(value) {
     if (saving || !value) { setResponse(null); return }
@@ -373,31 +361,6 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman, p
           </button>
         )}
       </div>
-
-      {response && !reminder && (
-        <div className="px-3 pb-2">
-          <p className="text-[10px] font-bold text-slate-400 mb-1">📅 Follow-up set karo:</p>
-          <input
-            type="text"
-            value={reminderNote}
-            onChange={e => setReminderNote(e.target.value)}
-            placeholder="Follow-up me kya karna hai? (optional)"
-            className="w-full mb-1.5 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 outline-none focus:border-brand-400"
-          />
-          <div className="flex gap-1">
-            {[['Kal', 1], ['3 din', 3], ['1 hafta', 7], ['15 din', 15], ['1 mahina', 30]].map(([label, days]) => (
-              <button
-                key={days}
-                onClick={() => quickSetReminder(days)}
-                disabled={reminderSaving}
-                className="flex-1 py-1.5 rounded-lg bg-brand-50 border border-brand-200 text-brand-700 text-[10px] font-bold active:scale-95 disabled:opacity-40"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
     </div>
   )
@@ -901,7 +864,7 @@ export default function S_Dashboard() {
                 </div>
               ) : (
                 filteredResults.map(c => (
-                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} profileId={profile?.id} />
+                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
                 ))
               )}
             </div>
@@ -974,7 +937,7 @@ export default function S_Dashboard() {
                 </div>
               ) : (
                 todayCustomers.map(c => (
-                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} profileId={profile?.id} />
+                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
                 ))
               )}
             </div>
@@ -1059,7 +1022,7 @@ export default function S_Dashboard() {
                       <span className="text-[10px] text-slate-400 bg-slate-200 rounded-full px-1.5 py-0.5">{group.items.length}</span>
                     </div>
                     {group.items.map(c => (
-                      <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} profileId={profile?.id} />
+                      <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
                     ))}
                   </div>
                 ))
@@ -1132,7 +1095,7 @@ export default function S_Dashboard() {
                         <span className="text-[10px] text-slate-400 bg-slate-200 rounded-full px-1.5 py-0.5">{group.items.length}</span>
                       </div>
                       {group.items.map(c => (
-                        <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} profileId={profile?.id} />
+                        <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
                       ))}
                     </div>
                   ))}
@@ -1171,7 +1134,7 @@ export default function S_Dashboard() {
                           <span className="text-[10px] text-white bg-red-500 rounded-full px-1.5 py-0.5">{overdue.length}</span>
                         </div>
                         {overdue.map(c => (
-                          <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} profileId={profile?.id} />
+                          <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
                         ))}
                       </>
                     )}
@@ -1182,7 +1145,7 @@ export default function S_Dashboard() {
                           <span className="text-[10px] text-white bg-brand-500 rounded-full px-1.5 py-0.5">{upcoming.length}</span>
                         </div>
                         {upcoming.map(c => (
-                          <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} profileId={profile?.id} />
+                          <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
                         ))}
                       </>
                     )}
