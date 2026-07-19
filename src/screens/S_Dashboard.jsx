@@ -6,6 +6,7 @@ import {
   saveCustomerResponse,
 } from '../lib/db/dashboard'
 import { deleteCustomer } from '../lib/db/customers'
+import { createReminder, quickDueDate } from '../lib/db/reminders'
 import { PROBLEMS } from '../logic/problems'
 import { calcEMI, calculateCOD, calculateROI } from '../logic/calculations'
 
@@ -41,6 +42,21 @@ function getDateBounds(filter, customFrom, customTo) {
   if (filter === 'last7')     { const w = new Date(now); w.setDate(w.getDate() - 6); return [sob(w), eob(now)] }
   if (filter === 'custom')    return [customFrom ? sob(new Date(customFrom)) : null, customTo ? eob(new Date(customTo)) : null]
   return [null, null]
+}
+
+// ── Follow-up due-date filter ─────────────────────────────────────────────────
+function matchFollowupFilter(dueAt, filter) {
+  if (filter === 'all') return true
+  const now = new Date()
+  const d   = new Date(dueAt)
+  if (filter === 'overdue') return d < now
+  const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1)
+  if (filter === 'today')    return d.toDateString() === now.toDateString()
+  if (filter === 'tomorrow') return d.toDateString() === tomorrow.toDateString()
+  const end = new Date(now)
+  end.setDate(now.getDate() + (filter === 'week' ? 7 : 15))
+  end.setHours(23, 59, 59, 999)
+  return d >= now && d <= end
 }
 
 // ── Group customers by visit date ─────────────────────────────────────────────
@@ -178,11 +194,14 @@ function deriveIntent({ response, urgency, capitalNeeded, problemYears, problemM
 
 // ── Customer visit row ────────────────────────────────────────────────────────
 
-function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman }) {
+function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman, profileId }) {
   const painData = customer.painData || null
   const roiData  = customer.roiData  || null
   const [response, setResponse] = useState(customer.response || null)
   const [saving,   setSaving]   = useState(false)
+  const [reminder,        setReminder]        = useState(customer.nextReminder || null)
+  const [reminderSaving,  setReminderSaving]  = useState(false)
+  const [reminderNote,    setReminderNote]    = useState('')
 
   const time = new Date(customer.visitedAt).toLocaleTimeString('en-IN', {
     hour: '2-digit', minute: '2-digit', hour12: true,
@@ -191,6 +210,16 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman })
   const isCreatedToday = customer.customerCreatedAt
     ? new Date(customer.customerCreatedAt).toDateString() === new Date().toDateString()
     : false
+
+  async function quickSetReminder(days) {
+    if (reminderSaving) return
+    setReminderSaving(true)
+    try {
+      const r = await createReminder(customer.customerId, quickDueDate(days), reminderNote, salesman, profileId)
+      setReminder(r)
+      setReminderNote('')
+    } catch (_) {} finally { setReminderSaving(false) }
+  }
 
   async function handleResponse(value) {
     if (saving || !value) { setResponse(null); return }
@@ -239,6 +268,14 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman })
   // Hot Lead: ALL four conditions must be true
   const isHot = response === 'interested' && urgency === 'abhi' && capitalNeeded === 'haan' && roiShown
 
+  // Follow-up badge
+  const reminderOverdue  = reminder && new Date(reminder.due_at) < new Date()
+  const reminderDueToday = reminder && new Date(reminder.due_at).toDateString() === new Date().toDateString()
+  const reminderLabel = !reminder ? null
+    : reminderOverdue ? `⏰ Overdue — ${new Date(reminder.due_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`
+    : reminderDueToday ? `📅 Follow-up: Today ${new Date(reminder.due_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`
+    : `📅 Follow-up: ${new Date(reminder.due_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`
+
   return (
     <div className={`rounded-2xl border mb-3 overflow-hidden shadow-sm
       ${isHot         ? 'border-orange-300 bg-orange-50/20'
@@ -250,6 +287,12 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman })
         <div className="bg-orange-500 px-4 py-1.5 flex items-center gap-2">
           <span className="text-sm">🔥</span>
           <span className="text-xs font-extrabold text-white uppercase tracking-widest">Hot Lead — Abhi Action Lo!</span>
+        </div>
+      )}
+
+      {reminderLabel && (
+        <div className={`px-4 py-1.5 flex items-center gap-2 ${reminderOverdue ? 'bg-red-500' : 'bg-blue-500'}`}>
+          <span className="text-xs font-extrabold text-white uppercase tracking-widest">{reminderLabel}</span>
         </div>
       )}
 
@@ -327,6 +370,31 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman })
           </button>
         )}
       </div>
+
+      {response && !reminder && (
+        <div className="px-3 pb-2">
+          <p className="text-[10px] font-bold text-slate-400 mb-1">📅 Follow-up set karo:</p>
+          <input
+            type="text"
+            value={reminderNote}
+            onChange={e => setReminderNote(e.target.value)}
+            placeholder="Follow-up me kya karna hai? (optional)"
+            className="w-full mb-1.5 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 outline-none focus:border-brand-400"
+          />
+          <div className="flex gap-1">
+            {[['Kal', 1], ['3 din', 3], ['1 hafta', 7], ['15 din', 15], ['1 mahina', 30]].map(([label, days]) => (
+              <button
+                key={days}
+                onClick={() => quickSetReminder(days)}
+                disabled={reminderSaving}
+                className="flex-1 py-1.5 rounded-lg bg-brand-50 border border-brand-200 text-brand-700 text-[10px] font-bold active:scale-95 disabled:opacity-40"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
     </div>
   )
@@ -441,6 +509,7 @@ export default function S_Dashboard() {
   const [customFrom,       setCustomFrom]       = useState('')
   const [customTo,         setCustomTo]         = useState('')
   const [responseFilter,   setResponseFilter]   = useState('all')   // 'all' | 'interested' | 'soch_raha' | 'nahi'
+  const [followupFilter,   setFollowupFilter]   = useState('all')   // 'all' | 'overdue' | 'today' | 'tomorrow' | 'week' | '15days'
 
   const loadDashboard = useCallback(async (salesman) => {
     setLoading(true)
@@ -561,6 +630,18 @@ export default function S_Dashboard() {
 
   const filterActive = searchActive || dateActive || responseActive
 
+  // ── Follow-up tab data ────────────────────────────────────────────────────
+  const remCustomers = customers.filter(c => c.nextReminder)
+  const followupCounts = {
+    all:      remCustomers.length,
+    overdue:  remCustomers.filter(c => matchFollowupFilter(c.nextReminder.due_at, 'overdue')).length,
+    today:    remCustomers.filter(c => matchFollowupFilter(c.nextReminder.due_at, 'today')).length,
+    tomorrow: remCustomers.filter(c => matchFollowupFilter(c.nextReminder.due_at, 'tomorrow')).length,
+    week:     remCustomers.filter(c => matchFollowupFilter(c.nextReminder.due_at, 'week')).length,
+    '15days': remCustomers.filter(c => matchFollowupFilter(c.nextReminder.due_at, '15days')).length,
+  }
+  const followupCustomers = remCustomers.filter(c => matchFollowupFilter(c.nextReminder.due_at, followupFilter))
+
   const filterLabel = dateFilter === 'today'     ? 'Today'
                     : dateFilter === 'yesterday'  ? 'Yesterday'
                     : dateFilter === 'last7'      ? 'Last 7 Days'
@@ -619,6 +700,7 @@ export default function S_Dashboard() {
             { key: 'today', label: 'Aaj' },
             { key: 'month', label: 'Is Mahine' },
             { key: 'leads', label: 'Leads' },
+            { key: 'followups', label: 'Follow-ups' },
           ].map(t => (
             <button
               key={t.key}
@@ -631,7 +713,8 @@ export default function S_Dashboard() {
           ))}
         </div>
 
-        {/* Search + Date Filter */}
+        {/* Search + Date Filter — hidden on Follow-ups tab (it has its own filters) */}
+        {tab !== 'followups' && (
         <div className="px-4 pt-3 pb-3 bg-white border-b border-slate-100 space-y-2">
 
           {/* Search input */}
@@ -725,6 +808,39 @@ export default function S_Dashboard() {
           )}
 
         </div>
+        )}
+
+        {/* Follow-up time filter chips — only on Follow-ups tab */}
+        {tab === 'followups' && (
+          <div className="px-4 pt-3 pb-3 bg-white border-b border-slate-100">
+            <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
+              {[
+                { key: 'all',      label: 'All' },
+                { key: 'overdue',  label: '⏰ Overdue' },
+                { key: 'today',    label: 'Today' },
+                { key: 'tomorrow', label: 'Tomorrow' },
+                { key: 'week',     label: 'This Week' },
+                { key: '15days',   label: '15 Days' },
+              ].map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => setFollowupFilter(opt.key)}
+                  className={`flex-shrink-0 flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full border transition-all active:scale-95
+                    ${followupFilter === opt.key
+                      ? (opt.key === 'overdue' ? 'bg-red-500 border-red-500 text-white' : 'bg-brand-600 border-brand-600 text-white')
+                      : 'bg-white border-slate-200 text-slate-500'}`}
+                >
+                  {opt.label}
+                  <span className={`ml-0.5 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                    followupFilter === opt.key ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {followupCounts[opt.key]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Error banner */}
         {error && (
@@ -751,7 +867,7 @@ export default function S_Dashboard() {
         <div className="px-4 pt-4">
 
           {/* ══ FILTERED RESULTS (search and/or date) ══ */}
-          {filterActive && (
+          {filterActive && tab !== 'followups' && (
             <div>
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -782,7 +898,7 @@ export default function S_Dashboard() {
                 </div>
               ) : (
                 filteredResults.map(c => (
-                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
+                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} profileId={profile?.id} />
                 ))
               )}
             </div>
@@ -855,7 +971,7 @@ export default function S_Dashboard() {
                 </div>
               ) : (
                 todayCustomers.map(c => (
-                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
+                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} profileId={profile?.id} />
                 ))
               )}
             </div>
@@ -940,7 +1056,7 @@ export default function S_Dashboard() {
                       <span className="text-[10px] text-slate-400 bg-slate-200 rounded-full px-1.5 py-0.5">{group.items.length}</span>
                     </div>
                     {group.items.map(c => (
-                      <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
+                      <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} profileId={profile?.id} />
                     ))}
                   </div>
                 ))
@@ -1013,7 +1129,7 @@ export default function S_Dashboard() {
                         <span className="text-[10px] text-slate-400 bg-slate-200 rounded-full px-1.5 py-0.5">{group.items.length}</span>
                       </div>
                       {group.items.map(c => (
-                        <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
+                        <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} profileId={profile?.id} />
                       ))}
                     </div>
                   ))}
@@ -1021,6 +1137,57 @@ export default function S_Dashboard() {
               )}
             </div>
           )}
+
+          {/* ══ TAB: FOLLOW-UPS ══ */}
+          {tab === 'followups' && (() => {
+            const now = new Date()
+            const overdue = followupCustomers
+              .filter(c => new Date(c.nextReminder.due_at) < now)
+              .sort((a, b) => new Date(a.nextReminder.due_at) - new Date(b.nextReminder.due_at))
+            const upcoming = followupCustomers
+              .filter(c => new Date(c.nextReminder.due_at) >= now)
+              .sort((a, b) => new Date(a.nextReminder.due_at) - new Date(b.nextReminder.due_at))
+            return (
+              <div>
+                {followupCustomers.length === 0 ? (
+                  <div className="bg-white rounded-2xl border border-slate-200 px-4 py-10 text-center">
+                    <p className="text-3xl mb-2">📅</p>
+                    <p className="text-sm font-bold text-slate-500">
+                      {remCustomers.length === 0 ? 'Koi follow-up pending nahi' : 'Is time period me koi follow-up nahi'}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {remCustomers.length === 0 ? 'Lead ke Workspace se follow-up set karo' : 'Doosra filter chuno'}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {overdue.length > 0 && (
+                      <>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs font-extrabold text-red-600 uppercase tracking-widest">⏰ Overdue</span>
+                          <span className="text-[10px] text-white bg-red-500 rounded-full px-1.5 py-0.5">{overdue.length}</span>
+                        </div>
+                        {overdue.map(c => (
+                          <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} profileId={profile?.id} />
+                        ))}
+                      </>
+                    )}
+                    {upcoming.length > 0 && (
+                      <>
+                        <div className="flex items-center gap-2 mb-2 mt-3">
+                          <span className="text-xs font-extrabold text-brand-600 uppercase tracking-widest">📅 Upcoming</span>
+                          <span className="text-[10px] text-white bg-brand-500 rounded-full px-1.5 py-0.5">{upcoming.length}</span>
+                        </div>
+                        {upcoming.map(c => (
+                          <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} profileId={profile?.id} />
+                        ))}
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            )
+          })()}
 
         </div>
       </div>

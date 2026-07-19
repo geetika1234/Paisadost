@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { getAllProfiles, approveUser, updateProfile } from '../lib/db/profiles'
 import { getAllCustomersAdmin, assignCustomer } from '../lib/db/customers'
+import { getOpenReminders } from '../lib/db/reminders'
 
 const ROLES = ['sales', 'manager', 'admin']
 const ROLE_LABEL = { sales: '👤 Sales', manager: '🧑‍💼 Manager', admin: '👑 Admin' }
@@ -25,9 +26,13 @@ export default function S_AdminPanel() {
   const [leadsLoading,  setLeadsLoading]  = useState(false)
   const [expandedLead,  setExpandedLead]  = useState(null)
   const [filterBy,      setFilterBy]      = useState('all') // 'all' | 'unassigned' | profileId
+  const [allReminders,     setAllReminders]     = useState([])
+  const [remindersLoading, setRemindersLoading] = useState(false)
+  const [reminderFilterBy, setReminderFilterBy] = useState('all') // 'all' | profileId
 
   useEffect(() => { load() }, [])
   useEffect(() => { if (tab === 'leads') loadLeads() }, [tab])
+  useEffect(() => { if (tab === 'followups') loadReminders() }, [tab])
 
   async function load() {
     setLoading(true); setError(null)
@@ -49,6 +54,13 @@ export default function S_AdminPanel() {
     try { setAllLeads(await getAllCustomersAdmin()) }
     catch (err) { setError(err.message) }
     finally { setLeadsLoading(false) }
+  }
+
+  async function loadReminders() {
+    setRemindersLoading(true); setError(null)
+    try { setAllReminders(await getOpenReminders(null)) }
+    catch (err) { setError(err.message) }
+    finally { setRemindersLoading(false) }
   }
 
   async function handleAssign(customerId, profileId) {
@@ -96,6 +108,27 @@ export default function S_AdminPanel() {
     ...(unassignedCount > 0 ? [{ key: 'unassigned', label: 'Unassigned', count: unassignedCount }] : []),
   ]
 
+  // ── Follow-ups filter ──────────────────────────────────────────────────────
+  const filteredReminders = allReminders.filter(r => {
+    if (reminderFilterBy === 'all') return true
+    return r.customers?.assigned_to === reminderFilterBy
+  })
+
+  const reminderAssigneeCounts = {}
+  allReminders.forEach(r => {
+    const a = r.customers?.assigned_to
+    if (a) reminderAssigneeCounts[a] = (reminderAssigneeCounts[a] || 0) + 1
+  })
+  const reminderFilterChips = [
+    { key: 'all', label: 'All', count: allReminders.length },
+    ...approved
+      .filter(p => reminderAssigneeCounts[p.id])
+      .map(p => ({ key: p.id, label: p.fullname, count: reminderAssigneeCounts[p.id] })),
+  ]
+
+  const now = new Date()
+  const sortedReminders = [...filteredReminders].sort((a, b) => new Date(a.due_at) - new Date(b.due_at))
+
   return (
     <div className="phone-shell flex flex-col bg-slate-100" style={{ minHeight: '100dvh' }}>
 
@@ -123,6 +156,7 @@ export default function S_AdminPanel() {
           ['pending', `Pending (${pending.length})`],
           ['users',   `Users (${approved.length})`],
           ['leads',   `Leads`],
+          ['followups', `Follow-ups`],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -151,7 +185,7 @@ export default function S_AdminPanel() {
           </div>
         )}
 
-        {!loading && tab !== 'leads' && shown.length === 0 && (
+        {!loading && tab !== 'leads' && tab !== 'followups' && shown.length === 0 && (
           <div className="bg-white rounded-2xl border border-slate-200 px-4 py-10 text-center">
             <p className="text-3xl mb-2">{tab === 'pending' ? '✅' : '👥'}</p>
             <p className="text-sm font-bold text-slate-500">
@@ -273,7 +307,90 @@ export default function S_AdminPanel() {
           </>
         )}
 
-        {tab !== 'leads' && shown.map(p => (
+        {/* ── FOLLOW-UPS TAB ── */}
+        {tab === 'followups' && (
+          <>
+            {remindersLoading && (
+              <div className="flex items-center justify-center gap-2 py-8">
+                <div className="w-5 h-5 border-2 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
+                <p className="text-xs font-semibold text-slate-400">Load ho raha hai...</p>
+              </div>
+            )}
+
+            {/* Filter chips */}
+            {!remindersLoading && allReminders.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar">
+                {reminderFilterChips.map(chip => (
+                  <button
+                    key={chip.key}
+                    onClick={() => setReminderFilterBy(chip.key)}
+                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all active:scale-95
+                      ${reminderFilterBy === chip.key
+                        ? 'bg-brand-600 border-brand-600 text-white'
+                        : 'bg-white border-slate-200 text-slate-600'}`}
+                  >
+                    {chip.label}
+                    <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full
+                      ${reminderFilterBy === chip.key ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                      {chip.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {!remindersLoading && allReminders.length === 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 px-4 py-10 text-center">
+                <p className="text-3xl mb-2">📅</p>
+                <p className="text-sm font-bold text-slate-500">Koi follow-up pending nahi</p>
+              </div>
+            )}
+
+            {!remindersLoading && allReminders.length > 0 && sortedReminders.length === 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 px-4 py-10 text-center">
+                <p className="text-3xl mb-2">🔍</p>
+                <p className="text-sm font-bold text-slate-500">
+                  {reminderFilterChips.find(c => c.key === reminderFilterBy)?.label || 'Is user'} ke koi follow-ups nahi
+                </p>
+              </div>
+            )}
+
+            {sortedReminders.map(r => {
+              const assignee = approved.find(p => p.id === r.customers?.assigned_to)
+              const overdue  = new Date(r.due_at) < now
+              return (
+                <div key={r.reminder_id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="px-4 py-3 flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-extrabold flex-shrink-0
+                      ${overdue ? 'bg-red-100 text-red-600' : 'bg-brand-100 text-brand-600'}`}>
+                      {(r.customers?.shop_name || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-extrabold text-slate-800 truncate">{r.customers?.shop_name || 'Unknown'}</p>
+                      {r.customers?.owner_name && <p className="text-xs text-slate-400 truncate">{r.customers.owner_name}</p>}
+                      <p className="text-[11px] font-bold text-brand-500 mt-0.5">{assignee ? assignee.fullname : '— Unassigned'}</p>
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${overdue ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-700'}`}>
+                        {overdue ? '⏰ Overdue' : '📅 Upcoming'}
+                      </span>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        {new Date(r.due_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                      </p>
+                    </div>
+                  </div>
+                  {r.note && (
+                    <div className="border-t border-slate-100 px-4 py-2">
+                      <p className="text-xs text-slate-600">🗒️ {r.note}</p>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </>
+        )}
+
+        {tab !== 'leads' && tab !== 'followups' && shown.map(p => (
           <div key={p.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
 
             {/* Identity row */}

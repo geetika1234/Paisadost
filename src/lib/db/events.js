@@ -55,3 +55,29 @@ export async function addEvent(customerId, eventType, data = {}, salesmanId = nu
 
   return event
 }
+
+/**
+ * addNote(customerId, text, salesmanId)
+ * Records a free-text note as a note_added event. Not in STAGE_MAP —
+ * adding a note never advances the customer's stage.
+ */
+export async function addNote(customerId, text, salesmanId = null) {
+  const trimmed = text?.trim()
+  if (!trimmed) return null
+  return addEvent(customerId, 'note_added', { text: trimmed }, salesmanId)
+}
+
+/**
+ * getNotes(customerId)
+ * All note_added events for a customer, newest first.
+ */
+export async function getNotes(customerId) {
+  const { data, error } = await supabase
+    .from('events')
+    .select('event_id, data, salesman_id, created_at')
+    .eq('customer_id', customerId)
+    .eq('event_type', 'note_added')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
+}

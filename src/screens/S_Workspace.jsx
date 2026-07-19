@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { getCurrentUser, getLatestResponseEvent, saveCustomerResponse } from '../lib/db/dashboard'
+import { createReminder, getRemindersForCustomer, completeReminder, updateReminder, quickDueDate } from '../lib/db/reminders'
+import { addNote, getNotes } from '../lib/db/events'
 import { calculateROI, calculateCOD, calcEMI } from '../logic/calculations'
 import { PROBLEMS } from '../logic/problems'
 
@@ -64,17 +66,38 @@ export default function S_Workspace() {
     openPainDiscovery,
     setMainScreen,
     openDashboard,
+    profile,
   } = useApp()
 
   const salesman = getCurrentUser()
   const [response,      setResponse]      = useState(null)
   const [responseSaving, setResponseSaving] = useState(false)
 
+  // ── Follow-up reminder ────────────────────────────────────────────────────
+  const [openReminder,   setOpenReminder]   = useState(null)
+  const [doneReminders,  setDoneReminders]  = useState([])
+  const [reminderSaving, setReminderSaving] = useState(false)
+  const [dueAtInput,     setDueAtInput]     = useState('')
+  const [reminderNote,   setReminderNote]   = useState('')
+  const [rescheduling,   setRescheduling]   = useState(false)
+
+  // ── Notes ─────────────────────────────────────────────────────────────────
+  const [notes,      setNotes]      = useState([])
+  const [noteText,   setNoteText]   = useState('')
+  const [noteSaving, setNoteSaving] = useState(false)
+
   useEffect(() => {
     if (!activeCustomer?.id) return
     getLatestResponseEvent(activeCustomer.id)
       .then(r => { if (r) setResponse(r) })
       .catch(() => {})
+    getRemindersForCustomer(activeCustomer.id)
+      .then(list => {
+        setOpenReminder(list.find(r => r.status === 'pending') || null)
+        setDoneReminders(list.filter(r => r.status === 'done'))
+      })
+      .catch(() => {})
+    getNotes(activeCustomer.id).then(setNotes).catch(() => {})
   }, [activeCustomer?.id])
 
   async function handleResponse(value) {
@@ -84,6 +107,69 @@ export default function S_Workspace() {
     setResponseSaving(true)
     try { await saveCustomerResponse(activeCustomer.id, value, salesman) } catch (_) {}
     setResponseSaving(false)
+  }
+
+  async function quickSetReminder(days) {
+    if (reminderSaving) return
+    setReminderSaving(true)
+    try {
+      const r = await createReminder(activeCustomer.id, quickDueDate(days), reminderNote, salesman, profile?.id)
+      setOpenReminder(r)
+      setReminderNote('')
+    } catch (_) {} finally { setReminderSaving(false) }
+  }
+
+  async function handleSetReminder() {
+    if (!dueAtInput || reminderSaving) return
+    setReminderSaving(true)
+    try {
+      const r = await createReminder(activeCustomer.id, new Date(dueAtInput).toISOString(), reminderNote, salesman, profile?.id)
+      setOpenReminder(r)
+      setDueAtInput('')
+      setReminderNote('')
+    } catch (_) {} finally { setReminderSaving(false) }
+  }
+
+  async function handleCompleteReminder(id) {
+    if (reminderSaving) return
+    setReminderSaving(true)
+    try {
+      await completeReminder(id)
+      if (openReminder) {
+        setDoneReminders(prev => [{ ...openReminder, status: 'done', completed_at: new Date().toISOString() }, ...prev])
+      }
+      setOpenReminder(null); setRescheduling(false); setReminderNote(''); setDueAtInput('')
+    } catch (_) {} finally { setReminderSaving(false) }
+  }
+
+  // Open the edit/reschedule editor, prefilling the current note
+  function openEditReminder() {
+    setReminderNote(openReminder?.note || '')
+    setDueAtInput('')
+    setRescheduling(true)
+  }
+
+  // Save an edit: new date if a chip/custom date was chosen, else keep old date; note always updates
+  async function saveReminderEdit(newDueIso) {
+    if (reminderSaving || !openReminder) return
+    setReminderSaving(true)
+    try {
+      const due_at = newDueIso || openReminder.due_at
+      await updateReminder(openReminder.reminder_id, { due_at, note: reminderNote })
+      setOpenReminder({ ...openReminder, due_at, note: reminderNote.trim() || null })
+      setDueAtInput('')
+      setRescheduling(false)
+    } catch (_) {} finally { setReminderSaving(false) }
+  }
+
+  async function handleAddNote() {
+    if (!noteText.trim() || noteSaving) return
+    setNoteSaving(true)
+    try {
+      const ev = await addNote(activeCustomer.id, noteText, salesman)
+      setNotes(prev => [{ event_id: ev.event_id, data: ev.data, salesman_id: salesman, created_at: ev.created_at }, ...prev])
+      setNoteText('')
+    } catch (_) {} finally { setNoteSaving(false) }
   }
 
   if (!activeCustomer) {
@@ -313,6 +399,181 @@ export default function S_Workspace() {
           )}
         </div>
 
+        {/* ── Follow-up ─────────────────────────────────────────────────── */}
+        <Section title="Follow-up" emoji="📅" defaultOpen>
+          {openReminder && !rescheduling && (
+            <>
+              <div className="flex items-center gap-1.5 mb-2 bg-green-50 border border-green-200 rounded-lg px-2.5 py-1.5">
+                <span className="text-xs">✅</span>
+                <span className="text-[11px] font-bold text-green-700">Follow-up set ho gaya — reminder saved</span>
+              </div>
+              <Row
+                label="Due"
+                value={new Date(openReminder.due_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                valueClass={new Date(openReminder.due_at) < new Date() ? 'text-red-600 font-extrabold' : 'text-slate-700'}
+              />
+              <Row label="Note" value={openReminder.note} />
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={openEditReminder}
+                  disabled={reminderSaving}
+                  className="flex-1 py-2 rounded-xl bg-brand-600 text-white text-xs font-bold active:scale-95 disabled:opacity-40"
+                >
+                  ✏️ Edit / Reschedule
+                </button>
+                <button
+                  onClick={() => handleCompleteReminder(openReminder.reminder_id)}
+                  disabled={reminderSaving}
+                  className="flex-1 py-2 rounded-xl border border-green-300 text-green-700 text-xs font-bold active:scale-95 disabled:opacity-40"
+                >
+                  ✔️ Poora Hua
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400 text-center pt-1.5">
+                Jab follow-up ho jaaye tab "Poora Hua" dabao — reminder hat jaayega
+              </p>
+            </>
+          )}
+
+          {openReminder && rescheduling && (
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={reminderNote}
+                onChange={e => setReminderNote(e.target.value)}
+                placeholder="Follow-up me kya karna hai? (optional)"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand-400"
+              />
+              <p className="text-[10px] font-bold text-slate-400">Date badlo — ek chuno (ya note save karo):</p>
+              <div className="flex gap-1">
+                {[['Kal', 1], ['3 din', 3], ['1 hafta', 7], ['15 din', 15], ['1 mahina', 30]].map(([label, days]) => (
+                  <button
+                    key={days}
+                    onClick={() => saveReminderEdit(quickDueDate(days))}
+                    disabled={reminderSaving}
+                    className="flex-1 py-2 rounded-lg bg-brand-50 border border-brand-200 text-brand-700 text-[10px] font-bold active:scale-95 disabled:opacity-40"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="datetime-local"
+                  value={dueAtInput}
+                  onChange={e => setDueAtInput(e.target.value)}
+                  className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand-400"
+                />
+                <button
+                  onClick={() => saveReminderEdit(dueAtInput ? new Date(dueAtInput).toISOString() : null)}
+                  disabled={reminderSaving}
+                  className="px-4 py-2 rounded-xl bg-brand-600 text-white text-xs font-bold disabled:opacity-40 active:scale-95"
+                >
+                  Save
+                </button>
+              </div>
+              <button
+                onClick={() => { setRescheduling(false); setDueAtInput(''); setReminderNote('') }}
+                className="w-full py-2 rounded-xl border border-slate-200 text-slate-500 text-xs font-bold active:scale-95"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {!openReminder && (
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={reminderNote}
+                onChange={e => setReminderNote(e.target.value)}
+                placeholder="Follow-up me kya karna hai? (optional)"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand-400"
+              />
+              <p className="text-[10px] font-bold text-slate-400">Kab? — ek chuno:</p>
+              <div className="flex gap-1">
+                {[['Kal', 1], ['3 din', 3], ['1 hafta', 7], ['15 din', 15], ['1 mahina', 30]].map(([label, days]) => (
+                  <button
+                    key={days}
+                    onClick={() => quickSetReminder(days)}
+                    disabled={reminderSaving}
+                    className="flex-1 py-2 rounded-lg bg-brand-50 border border-brand-200 text-brand-700 text-[10px] font-bold active:scale-95 disabled:opacity-40"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="datetime-local"
+                  value={dueAtInput}
+                  onChange={e => setDueAtInput(e.target.value)}
+                  className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand-400"
+                />
+                <button
+                  onClick={handleSetReminder}
+                  disabled={!dueAtInput || reminderSaving}
+                  className="px-4 py-2 rounded-xl bg-brand-600 text-white text-xs font-bold disabled:opacity-40 active:scale-95"
+                >
+                  Set
+                </button>
+              </div>
+            </div>
+          )}
+
+          {doneReminders.length > 0 && (
+            <div className="pt-2 mt-2 border-t border-slate-100 space-y-1.5">
+              <p className="text-[10px] font-bold text-slate-400">✔️ Poore ho chuke follow-ups ({doneReminders.length})</p>
+              {doneReminders.map(r => (
+                <div key={r.reminder_id} className="flex items-start gap-2">
+                  <span className="text-green-500 text-[11px] mt-0.5 flex-shrink-0">✓</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-semibold text-slate-500">
+                      {new Date(r.due_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                      {r.note ? ` — ${r.note}` : ''}
+                    </p>
+                    {r.completed_at && (
+                      <p className="text-[10px] text-green-600">Poora hua: {new Date(r.completed_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        {/* ── Notes ─────────────────────────────────────────────────────── */}
+        <Section title="Notes" emoji="🗒️">
+          <div className="space-y-2">
+            <textarea
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              placeholder="Note likho..."
+              rows={2}
+              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand-400 resize-none"
+            />
+            <button
+              onClick={handleAddNote}
+              disabled={!noteText.trim() || noteSaving}
+              className="w-full py-2 rounded-xl bg-brand-600 text-white text-xs font-bold disabled:opacity-40 active:scale-95"
+            >
+              + Add Note
+            </button>
+          </div>
+          {notes.length > 0 && (
+            <div className="pt-2 border-t border-slate-100 space-y-2 mt-2">
+              {notes.map(n => (
+                <div key={n.event_id}>
+                  <p className="text-xs text-slate-700">{n.data?.text}</p>
+                  <p className="text-[10px] text-slate-400">
+                    {n.salesman_id || 'Unknown'} · {new Date(n.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
         {/* ── Collapsible sections ──────────────────────────────────────── */}
 
         {/* 1. Business Profile */}
@@ -414,6 +675,30 @@ export default function S_Workspace() {
             <option value='thinking'>🟡 Soch Raha</option>
             <option value='not_interested'>🔴 Nahi</option>
           </select>
+          {response && !openReminder && (
+            <div className="mt-2">
+              <p className="text-[10px] font-bold text-slate-400 mb-1">📅 Follow-up set karo:</p>
+              <input
+                type="text"
+                value={reminderNote}
+                onChange={e => setReminderNote(e.target.value)}
+                placeholder="Follow-up me kya karna hai? (optional)"
+                className="w-full mb-1.5 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 outline-none focus:border-brand-400"
+              />
+              <div className="flex gap-1">
+                {[['Kal', 1], ['3 din', 3], ['1 hafta', 7], ['15 din', 15], ['1 mahina', 30]].map(([label, days]) => (
+                  <button
+                    key={days}
+                    onClick={() => quickSetReminder(days)}
+                    disabled={reminderSaving}
+                    className="flex-1 py-1.5 rounded-lg bg-brand-50 border border-brand-200 text-brand-700 text-[10px] font-bold active:scale-95 disabled:opacity-40"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

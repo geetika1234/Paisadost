@@ -311,7 +311,7 @@ export async function getAssignedLeads(profileId) {
 
   const customerIds = customers.map(c => c.customer_id)
 
-  const [visitRes, painRes, roiRes, responseRes, loginRes] = await Promise.all([
+  const [visitRes, painRes, roiRes, responseRes, loginRes, reminderRes] = await Promise.all([
     supabase.from('events').select('customer_id, event_id, data, created_at')
       .in('customer_id', customerIds).eq('event_type', 'visit_done')
       .order('created_at', { ascending: false }),
@@ -327,13 +327,17 @@ export async function getAssignedLeads(profileId) {
     supabase.from('events').select('customer_id')
       .in('customer_id', customerIds).eq('event_type', 'login_started')
       .gte('created_at', todayStart),
+    supabase.from('reminders').select('customer_id, reminder_id, due_at, note')
+      .in('customer_id', customerIds).eq('status', 'pending')
+      .order('due_at', { ascending: true }),
   ])
 
-  const visitMap = {}, painMap = {}, roiMap = {}, responseMap = {}
+  const visitMap = {}, painMap = {}, roiMap = {}, responseMap = {}, reminderMap = {}
   for (const e of visitRes.data  || []) { if (!visitMap[e.customer_id])    visitMap[e.customer_id]    = e           }
   for (const e of painRes.data   || []) { if (!painMap[e.customer_id])     painMap[e.customer_id]     = e.data      }
   for (const e of roiRes.data    || []) { if (!roiMap[e.customer_id])      roiMap[e.customer_id]      = e.data      }
   for (const e of responseRes.data || []) { if (!responseMap[e.customer_id]) responseMap[e.customer_id] = e.data?.response || null }
+  for (const r of reminderRes.data || []) { if (!reminderMap[r.customer_id]) reminderMap[r.customer_id] = r }
   const loggedIn = new Set((loginRes.data || []).map(e => e.customer_id))
 
   return customers.map(c => {
@@ -345,6 +349,7 @@ export async function getAssignedLeads(profileId) {
       customerCreatedAt: c.created_at,
       painData:   painMap[c.customer_id] || null,
       roiData:    roiMap[c.customer_id]  || null,
+      nextReminder: reminderMap[c.customer_id] || null,
       shopName:   c.shop_name  || d.shopName  || 'Unknown',
       ownerName:  c.owner_name || d.ownerName || '',
       mobile:     c.mobile     || d.mobile    || '',
