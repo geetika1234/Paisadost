@@ -42,12 +42,51 @@ export function hasReachedStage(stageKey, targetKey) {
   return getStage(stageKey).rank >= getStage(targetKey).rank
 }
 
-/** Statuses (supabase/migrations/007 customers_status_check). Rules that change them arrive in Batch 3. */
+/**
+ * Statuses (customers_status_check, migration 007). The database changes them
+ * from events (migration 009): "Nahi" → nurture, "Interested" → back to
+ * active, and status_changed events with a reason.
+ */
 export const STATUSES = [
-  { key: 'active',        label: 'Active'        },
-  { key: 'nurture',       label: 'Nurture'       },
-  { key: 'not_qualified', label: 'Not Qualified' },
-  { key: 'lost',          label: 'Lost'          },
-  { key: 'rejected',      label: 'Rejected'      },
-  { key: 'dormant',       label: 'Dormant'       },
+  { key: 'active',        label: 'Active',        cls: 'bg-slate-100 text-slate-600', closed: false },
+  { key: 'nurture',       label: 'Nurture',       cls: 'bg-amber-100 text-amber-700', closed: false },
+  { key: 'not_qualified', label: 'Not Qualified', cls: 'bg-slate-200 text-slate-700', closed: true  },
+  { key: 'lost',          label: 'Lost',          cls: 'bg-red-100 text-red-700',     closed: true  },
+  { key: 'rejected',      label: 'Rejected',      cls: 'bg-red-100 text-red-700',     closed: true  },
+  { key: 'dormant',       label: 'Dormant',       cls: 'bg-slate-200 text-slate-500', closed: true  },
 ]
+
+const STATUS_BY_KEY = Object.fromEntries(STATUSES.map(s => [s.key, s]))
+
+/** Status presentation. Missing status means the lead predates statuses: active. */
+export function getStatus(key) {
+  return STATUS_BY_KEY[key] || STATUS_BY_KEY.active
+}
+
+/** Closed leads leave the working list and do not advance until reactivated. */
+export function isClosedStatus(key) {
+  return getStatus(key).closed
+}
+
+/** Lead-list views: 'open' = active + nurture (default), 'nurture', 'closed'. */
+export function matchStatusView(statusKey, view) {
+  if (view === 'nurture') return getStatus(statusKey).key === 'nurture'
+  if (view === 'closed')  return isClosedStatus(statusKey)
+  return !isClosedStatus(statusKey)
+}
+
+/** Statuses an agent may close their own lead with, and the reasons offered. */
+export const AGENT_CLOSE_REASONS = {
+  lost: [
+    'Doosre lender se loan le liya',
+    'Dukaan band ho gayi',
+    'Customer ne mana kar diya',
+    'Contact nahi ho pa raha',
+  ],
+  not_qualified: [
+    'Business bahut chhota hai',
+    'Purana loan default hai',
+    'Documents nahi hain',
+    'Area serviceable nahi hai',
+  ],
+}

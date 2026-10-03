@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { STAGES, getStage, hasReachedStage } from './stages'
+import {
+  STAGES, getStage, hasReachedStage,
+  getStatus, isClosedStatus, matchStatusView, AGENT_CLOSE_REASONS,
+} from './stages'
 
 // Source of every app file except tests and this module, for structural guards.
 const SRC_DIR = 'src'
@@ -41,5 +44,24 @@ describe('stage vocabulary', () => {
     expect(getStage('disbursed').label).toBe('Disbursed')
     expect(hasReachedStage('disbursed', 'login_started')).toBe(true)
     expect(hasReachedStage('visited', 'roi_shown')).toBe(false)
+  })
+})
+
+describe('lead status', () => {
+  it('treats leads without a status as Active', () => {
+    expect(getStatus(undefined).key).toBe('active')
+    expect(isClosedStatus(undefined)).toBe(false)
+  })
+
+  it('splits statuses into open and closed views', () => {
+    expect(['active', 'nurture'].filter(s => matchStatusView(s, 'open'))).toEqual(['active', 'nurture'])
+    expect(['lost', 'not_qualified', 'rejected', 'dormant'].every(s => matchStatusView(s, 'closed'))).toBe(true)
+    expect(matchStatusView('active', 'nurture')).toBe(false)
+    expect(matchStatusView('lost', 'open')).toBe(false)
+  })
+
+  it('offers agents only the statuses the database lets them set', () => {
+    expect(Object.keys(AGENT_CLOSE_REASONS).sort()).toEqual(['lost', 'not_qualified'])
+    for (const reasons of Object.values(AGENT_CLOSE_REASONS)) expect(reasons.length).toBeGreaterThan(0)
   })
 })

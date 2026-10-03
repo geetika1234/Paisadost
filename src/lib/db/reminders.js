@@ -44,6 +44,9 @@ export async function getRemindersForCustomer(customerId) {
   return data || []
 }
 
+// Follow-ups on closed leads (lost, rejected, ...) stay stored but are not shown.
+const OPEN_LEAD_STATUSES = ['active', 'nurture']
+
 /**
  * getOpenReminders(profileId)
  * Cross-lead task list: pending reminders joined to customer identity,
@@ -53,8 +56,9 @@ export async function getRemindersForCustomer(customerId) {
 export async function getOpenReminders(profileId) {
   let query = supabase
     .from('reminders')
-    .select('reminder_id, customer_id, due_at, note, status, salesman_id, customers!inner(customer_id, shop_name, owner_name, mobile, area, landmark, assigned_to)')
+    .select('reminder_id, customer_id, due_at, note, status, salesman_id, customers!inner(customer_id, shop_name, owner_name, mobile, area, landmark, assigned_to, status)')
     .eq('status', 'pending')
+    .in('customers.status', OPEN_LEAD_STATUSES)
     .order('due_at', { ascending: true })
 
   if (profileId) query = query.eq('customers.assigned_to', profileId)

@@ -12,6 +12,11 @@ const MESSAGES = {
   profile_id_immutable:            'Profile ID badli nahi ja sakti.',
   stage_role_denied:               'Yeh step aap nahi kar sakte. Manager se baat karein.',
   stage_evidence_missing:          'Visit save karne ke liye 3 photo zaroori hain.',
+  status_change_denied:            'Is lead ka status aap nahi badal sakte. Admin se baat karein.',
+  status_reason_required:          'Reason chunna zaroori hai.',
+  status_reason_too_long:          'Note chhota rakhein (300 characters tak).',
+  status_rejected_needs_login:     'Rejected sirf Login Done ke baad ho sakta hai.',
+  status_invalid:                  'Yeh status maanya nahi hai.',
 }
 
 export function friendlyDbError(err, fallback = 'Kuch galat ho gaya. Dobara try karein.') {

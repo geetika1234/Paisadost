@@ -1,5 +1,5 @@
 import { supabase } from '../supabase'
-import { saveCustomer } from './customers'
+import { saveCustomer, getCustomerStage } from './customers'
 import { addEvent } from './events'
 
 // ── Salesman session ──────────────────────────────────────────────────────────
@@ -240,10 +240,14 @@ export async function getLatestPainEvent(customerId) {
 
 /**
  * saveCustomerResponse(customerId, response, salesman)
- * Stores a customer_response event: 'interested' | 'thinking' | 'not_interested'
+ * Stores a customer_response event: 'interested' | 'thinking' | 'not_interested'.
+ * The database may change the lead's status from it (migration 009: "Nahi" →
+ * nurture, "Interested" → active again), so the settled status is returned.
  */
 export async function saveCustomerResponse(customerId, response, salesman) {
   await addEvent(customerId, 'customer_response', { response }, salesman)
+  const { status, status_reason } = await getCustomerStage(customerId)
+  return { status, statusReason: status_reason }
 }
 
 // ── Save visit ────────────────────────────────────────────────────────────────
@@ -299,7 +303,7 @@ export async function getAssignedLeads(profileId) {
 
   let query = supabase
     .from('customers')
-    .select('customer_id, name, mobile, shop_name, owner_name, area, landmark, stage, created_at')
+    .select('customer_id, name, mobile, shop_name, owner_name, area, landmark, stage, status, status_reason, created_at')
     .order('created_at', { ascending: false })
 
   if (profileId) query = query.eq('assigned_to', profileId)
@@ -356,6 +360,8 @@ export async function getAssignedLeads(profileId) {
       city:       c.area       || d.city      || '',
       market:     c.landmark   || d.market    || '',
       stage:      c.stage      || 'new',
+      status:       c.status        || 'active',
+      statusReason: c.status_reason || null,
       visitedAt:  visitEv?.created_at || c.created_at,
       fileLogin:  loggedIn.has(c.customer_id),
       response:   responseMap[c.customer_id] || null,

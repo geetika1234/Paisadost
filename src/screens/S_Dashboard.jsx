@@ -9,7 +9,7 @@ import { deleteCustomer } from '../lib/db/customers'
 import { friendlyDbError } from '../lib/db/errors'
 import { PROBLEMS } from '../logic/problems'
 import { calcEMI, calculateCOD, calculateROI } from '../logic/calculations'
-import { getStage, hasReachedStage } from '../logic/stages'
+import { getStage, hasReachedStage, getStatus, isClosedStatus, matchStatusView } from '../logic/stages'
 
 // Flat tag → label map for all sub-problems
 const SUB_LABEL = {}
@@ -184,7 +184,7 @@ function deriveIntent({ response, urgency, capitalNeeded, problemYears, problemM
 
 // ── Customer visit row ────────────────────────────────────────────────────────
 
-function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman }) {
+function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, onStatusChange, salesman }) {
   const painData = customer.painData || null
   const roiData  = customer.roiData  || null
   const [response, setResponse] = useState(customer.response || null)
@@ -204,9 +204,15 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman })
     if (saving || !value) { setResponse(null); return }
     setResponse(value)
     setSaving(true)
-    try { await saveCustomerResponse(customer.customerId, value, salesman) } catch (_) {}
+    try {
+      // "Nahi" moves an active lead to Nurture; "Interested" brings it back (DB rule).
+      const settled = await saveCustomerResponse(customer.customerId, value, salesman)
+      if (settled.status !== customer.status) onStatusChange?.(customer.customerId, settled)
+    } catch (_) {}
     setSaving(false)
   }
+
+  const status = getStatus(customer.status)
 
   // ── Derived insight values ──────────────────────────────────────────────
   const primaryProblem = painData?.primaryProblem
@@ -285,7 +291,17 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman })
           {customer.shopName.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-extrabold text-slate-800 truncate">{customer.shopName}</p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="text-sm font-extrabold text-slate-800 truncate">{customer.shopName}</p>
+            {status.key !== 'active' && (
+              <span
+                title={customer.statusReason || undefined}
+                className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${status.cls}`}
+              >
+                {status.label}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 truncate">
             {customer.ownerName}{customer.city ? ` · ${customer.city}` : ''}{customer.market ? ` · ${customer.market}` : ''}
           </p>
@@ -421,6 +437,8 @@ export default function S_Dashboard() {
       city:                customer.city,
       market:              customer.market,
       stage,
+      status:              customer.status,
+      statusReason:        customer.statusReason,
       // Engagement form data — pre-fills form on reopen
       bizTypes:            customer.bizTypes            || [],
       bizTypeOther:        customer.bizTypeOther        || '',
@@ -456,7 +474,10 @@ export default function S_Dashboard() {
     }
   }, [profile?.fullname, user])
   const [data,             setData]             = useState({ todayVisits: 0, monthVisits: 0, fileLogin: 0 })
-  const [customers,        setCustomers]        = useState([])
+  const [allCustomers,     setCustomers]        = useState([])
+  // Closed leads (lost, rejected, ...) leave the working list unless asked for.
+  const [statusView,       setStatusView]       = useState('open')   // 'open' | 'nurture' | 'closed'
+  const customers = allCustomers.filter(c => matchStatusView(c.status, statusView))
   const [loading,          setLoading]          = useState(false)
   const [error,            setError]            = useState(null)
   const [tab,              setTab]              = useState(dashboardInitialTab || 'today')
@@ -494,6 +515,10 @@ export default function S_Dashboard() {
   function handleLogin(name) {
     setCurrentUser(name)
     setUser(name.trim())
+  }
+
+  function handleStatusChange(customerId, { status, statusReason }) {
+    setCustomers(prev => prev.map(c => c.customerId === customerId ? { ...c, status, statusReason } : c))
   }
 
   async function handleFileLogin(customerId) {
@@ -590,7 +615,13 @@ export default function S_Dashboard() {
   const filterActive = searchActive || dateActive || responseActive
 
   // ── Follow-up tab data ────────────────────────────────────────────────────
-  const remCustomers = customers.filter(c => c.nextReminder)
+  // Follow-ups only for leads still being worked, whatever list view is chosen.
+  const remCustomers = allCustomers.filter(c => c.nextReminder && !isClosedStatus(c.status))
+  const statusCounts = {
+    open:    allCustomers.filter(c => matchStatusView(c.status, 'open')).length,
+    nurture: allCustomers.filter(c => matchStatusView(c.status, 'nurture')).length,
+    closed:  allCustomers.filter(c => matchStatusView(c.status, 'closed')).length,
+  }
   const followupCounts = {
     all:      remCustomers.length,
     overdue:  remCustomers.filter(c => matchFollowupFilter(c.nextReminder.due_at, 'overdue')).length,
@@ -709,6 +740,32 @@ export default function S_Dashboard() {
                     : 'bg-white border-slate-200 text-slate-500'}`}
               >
                 {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Lead status view: closed leads are hidden unless asked for */}
+          <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide" role="group" aria-label="Lead status">
+            {[
+              { key: 'open',    label: 'Chalu leads', count: statusCounts.open    },
+              { key: 'nurture', label: 'Nurture',     count: statusCounts.nurture },
+              { key: 'closed',  label: 'Band leads',  count: statusCounts.closed  },
+            ].map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => setStatusView(opt.key)}
+                aria-pressed={statusView === opt.key}
+                className={`flex-shrink-0 flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full border transition-all active:scale-95
+                  ${statusView === opt.key
+                    ? 'bg-slate-800 border-slate-800 text-white'
+                    : 'bg-white border-slate-200 text-slate-500'}`}
+              >
+                {opt.label}
+                <span className={`ml-0.5 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                  statusView === opt.key ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {opt.count}
+                </span>
               </button>
             ))}
           </div>
@@ -857,7 +914,7 @@ export default function S_Dashboard() {
                 </div>
               ) : (
                 filteredResults.map(c => (
-                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
+                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} onStatusChange={handleStatusChange} salesman={user} />
                 ))
               )}
             </div>
@@ -930,7 +987,7 @@ export default function S_Dashboard() {
                 </div>
               ) : (
                 todayCustomers.map(c => (
-                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
+                  <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} onStatusChange={handleStatusChange} salesman={user} />
                 ))
               )}
             </div>
@@ -1015,7 +1072,7 @@ export default function S_Dashboard() {
                       <span className="text-[10px] text-slate-400 bg-slate-200 rounded-full px-1.5 py-0.5">{group.items.length}</span>
                     </div>
                     {group.items.map(c => (
-                      <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
+                      <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} onStatusChange={handleStatusChange} salesman={user} />
                     ))}
                   </div>
                 ))
@@ -1088,7 +1145,7 @@ export default function S_Dashboard() {
                         <span className="text-[10px] text-slate-400 bg-slate-200 rounded-full px-1.5 py-0.5">{group.items.length}</span>
                       </div>
                       {group.items.map(c => (
-                        <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
+                        <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} onStatusChange={handleStatusChange} salesman={user} />
                       ))}
                     </div>
                   ))}
@@ -1127,7 +1184,7 @@ export default function S_Dashboard() {
                           <span className="text-[10px] text-white bg-red-500 rounded-full px-1.5 py-0.5">{overdue.length}</span>
                         </div>
                         {overdue.map(c => (
-                          <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
+                          <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} onStatusChange={handleStatusChange} salesman={user} />
                         ))}
                       </>
                     )}
@@ -1138,7 +1195,7 @@ export default function S_Dashboard() {
                           <span className="text-[10px] text-white bg-brand-500 rounded-full px-1.5 py-0.5">{upcoming.length}</span>
                         </div>
                         {upcoming.map(c => (
-                          <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} salesman={user} />
+                          <CustomerRow key={c.id} customer={c} onFileLogin={handleFileLogin} onEdit={handleEdit} onSetActive={handleSetActive} onDelete={setDeletingCustomer} onStatusChange={handleStatusChange} salesman={user} />
                         ))}
                       </>
                     )}

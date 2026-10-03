@@ -5,7 +5,8 @@ import { createReminder, getRemindersForCustomer, completeReminder, updateRemind
 import { addNote, getNotes, getLoanRequirement, saveLoanRequirement } from '../lib/db/events'
 import { calculateROI, calculateCOD, calcEMI } from '../logic/calculations'
 import { PROBLEMS } from '../logic/problems'
-import { getStage, stageChipClass, hasReachedStage } from '../logic/stages'
+import { getStage, stageChipClass, hasReachedStage, getStatus } from '../logic/stages'
+import CloseLeadPanel from '../components/CloseLeadPanel'
 
 // Flat tag → label map for sub-problems
 const SUB_LABEL = {}
@@ -72,6 +73,7 @@ export default function S_Workspace() {
     openDashboard,
     profile,
     update,
+    updateActiveCustomer,
   } = useApp()
 
   const salesman = getCurrentUser()
@@ -134,7 +136,11 @@ export default function S_Workspace() {
     setResponse(value || null)
     if (!value) return
     setResponseSaving(true)
-    try { await saveCustomerResponse(activeCustomer.id, value, salesman) } catch (_) {}
+    try {
+      // "Nahi" moves an active lead to Nurture; "Interested" brings it back (DB rule).
+      const settled = await saveCustomerResponse(activeCustomer.id, value, salesman)
+      updateActiveCustomer(settled)
+    } catch (_) {}
     setResponseSaving(false)
   }
 
@@ -287,6 +293,7 @@ export default function S_Workspace() {
   }
 
   const stage        = { label: getStage(activeCustomer.stage).label, color: stageChipClass(activeCustomer.stage) }
+  const leadStatus   = getStatus(activeCustomer.status)
   const engagementDone = !!activeCustomer.engagementFilled
   const painDone       = !!activeCustomer.painFilled
   const roiDone        = !!activeCustomer.roiFilled || hasReachedStage(activeCustomer.stage, 'roi_shown')
@@ -433,6 +440,27 @@ export default function S_Workspace() {
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-4 py-5 pb-28 space-y-3">
+
+        {/* ── Lead status (only when not plain Active) ───────────────────── */}
+        {leadStatus.closed && (
+          <div role="status" className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+            <p className="text-sm font-extrabold text-red-700">Yeh lead band hai · {leadStatus.label}</p>
+            {activeCustomer.statusReason && (
+              <p className="text-xs text-red-700 mt-0.5">{activeCustomer.statusReason}</p>
+            )}
+            <p className="text-[11px] text-red-600 mt-1">
+              Stage aage nahi badhega. Dobara kholne ke liye admin se baat karein.
+            </p>
+          </div>
+        )}
+        {leadStatus.key === 'nurture' && (
+          <div role="status" className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+            <p className="text-sm font-extrabold text-amber-800">Nurture · abhi nahi, baad mein follow-up karein</p>
+            <p className="text-[11px] text-amber-700 mt-0.5">
+              Customer "Interested" bole to lead apne aap Active ho jaayegi.
+            </p>
+          </div>
+        )}
 
         {/* ── Action buttons ─────────────────────────────────────────────── */}
         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Is Customer Pe Kaam Karo</p>
@@ -975,6 +1003,15 @@ export default function S_Workspace() {
             </div>
           )}
         </Section>
+
+        {/* ── Close lead (agent) ─────────────────────────────────────────── */}
+        {!leadStatus.closed && (
+          <CloseLeadPanel
+            customerId={activeCustomer.id}
+            salesman={salesman}
+            onClosed={updateActiveCustomer}
+          />
+        )}
 
       </div>
 
