@@ -1,35 +1,30 @@
 import { supabase } from '../supabase'
 
-// Maps event_type → customer stage
-const STAGE_MAP = {
-  visit_done:      'visited',
-  pain_identified: 'pain_identified',
-  roi_shown:       'roi_shown',
-  login_started:   'login_started',
-  kyc_completed:   'login_started',
-  approved:        'approved',
-  disbursed:       'disbursed',
+/**
+ * updateEventData(eventId, data)
+ * Replaces the JSON data payload of an existing event (used for edits).
+ * Throws if no event matched, so an edit can never be silently dropped.
+ */
+export async function updateEventData(eventId, data = {}) {
+  const { data: rows, error } = await supabase
+    .from('events')
+    .update({ data })
+    .eq('event_id', eventId)
+    .select('event_id')
+  if (error) throw error
+  if (!rows?.length) throw new Error('event_not_found')
 }
 
 /**
  * addEvent(customerId, eventType, data, salesmanId?)
- * Inserts an event and advances the customer's stage accordingly.
+ * Records what happened. The database decides what it means for the lead's
+ * stage (events_apply_stage trigger, migration 007): it only moves forward,
+ * checks the caller's role and required photos, and rejects the insert with
+ * stage_role_denied / stage_evidence_missing when a rule fails.
  *
- * Event types: visit_done | pain_identified | roi_shown | login_started |
- *              kyc_completed | approved | disbursed | emi_paid | default
+ * Stage events: lead_created | visit_done | pain_identified | roi_shown | login_started
+ * Other events: customer_response | note_added | loan_requirement | ...
  */
-/**
- * updateEventData(eventId, data)
- * Replaces the JSON data payload of an existing event (used for edits).
- */
-export async function updateEventData(eventId, data = {}) {
-  const { error } = await supabase
-    .from('events')
-    .update({ data })
-    .eq('event_id', eventId)
-  if (error) throw error
-}
-
 export async function addEvent(customerId, eventType, data = {}, salesmanId = null) {
   const { data: event, error } = await supabase
     .from('events')
@@ -42,24 +37,13 @@ export async function addEvent(customerId, eventType, data = {}, salesmanId = nu
     .select()
     .single()
   if (error) throw error
-
-  // Advance customer stage (fire-and-forget — don't block on failure)
-  const newStage = STAGE_MAP[eventType]
-  if (newStage) {
-    supabase
-      .from('customers')
-      .update({ stage: newStage })
-      .eq('customer_id', customerId)
-      .then(({ error: e }) => { if (e) console.error('[addEvent] stage update failed:', e) })
-  }
-
   return event
 }
 
 /**
  * addNote(customerId, text, salesmanId)
- * Records a free-text note as a note_added event. Not in STAGE_MAP —
- * adding a note never advances the customer's stage.
+ * Records a free-text note as a note_added event. note_added is not a
+ * stage event, so adding a note never changes the lead's stage.
  */
 export async function addNote(customerId, text, salesmanId = null) {
   const trimmed = text?.trim()

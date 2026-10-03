@@ -1,0 +1,22 @@
+/**
+ * Maps errors raised by our SQL functions/triggers (supabase/migrations) to
+ * messages agents can act on. Unknown errors keep their original message so
+ * nothing is hidden while debugging.
+ */
+const MESSAGES = {
+  not_approved:                    'Aapka account abhi approve nahi hua. Admin se baat karein.',
+  delete_not_allowed:              'Yeh lead aap delete nahi kar sakte. Sirf apni aaj ki nayi lead delete ho sakti hai.',
+  customer_not_found:              'Yeh lead nahi mili. Shayad pehle hi delete ho chuki hai.',
+  profile_privilege_change_denied: 'Role ya approval sirf admin badal sakta hai.',
+  admin_self_demotion_blocked:     'Aap apna admin role khud nahi hata sakte.',
+  profile_id_immutable:            'Profile ID badli nahi ja sakti.',
+  stage_role_denied:               'Yeh step aap nahi kar sakte. Manager se baat karein.',
+  stage_evidence_missing:          'Visit save karne ke liye 3 photo zaroori hain.',
+}
+
+export function friendlyDbError(err, fallback = 'Kuch galat ho gaya. Dobara try karein.') {
+  const raw = err?.message || ''
+  const key = Object.keys(MESSAGES).find(k => raw.includes(k))
+  if (key) return MESSAGES[key]
+  return raw || fallback
+}

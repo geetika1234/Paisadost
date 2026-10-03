@@ -1,15 +1,7 @@
 import { useApp } from '../context/AppContext'
 import { getCurrentUser } from '../lib/db/dashboard'
 import { signOut } from '../lib/auth'
-
-const STAGE_CONFIG = {
-  visited:         { label: 'Visited',    bg: 'bg-brand-100',  text: 'text-brand-700',  dot: 'bg-brand-500'  },
-  pain_identified: { label: 'Pain Done',  bg: 'bg-purple-100',  text: 'text-purple-700',  dot: 'bg-purple-500'  },
-  roi_shown:       { label: 'ROI Shown',  bg: 'bg-blue-100',    text: 'text-blue-700',    dot: 'bg-blue-500'    },
-  login_started:   { label: 'Login Done', bg: 'bg-green-100',   text: 'text-green-700',   dot: 'bg-green-500'   },
-  approved:        { label: 'Approved',   bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-  disbursed:       { label: 'Disbursed',  bg: 'bg-teal-100',    text: 'text-teal-700',    dot: 'bg-teal-500'    },
-}
+import { getStage } from '../logic/stages'
 
 export default function S_Home() {
   const {
@@ -19,7 +11,7 @@ export default function S_Home() {
   } = useApp()
 
   const salesman = getCurrentUser()
-  const stage    = activeCustomer ? (STAGE_CONFIG[activeCustomer.stage] || STAGE_CONFIG.visited) : null
+  const stage    = activeCustomer ? getStage(activeCustomer.stage) : null
 
   async function handleSignOut() {
     try { await signOut() } catch (_) {}

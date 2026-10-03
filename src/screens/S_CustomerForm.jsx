@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { getCurrentUser, setCurrentUser } from '../lib/db/dashboard'
-import { saveCustomer, updateCustomer, checkMobileDuplicate, assignCustomer } from '../lib/db/customers'
+import {
+  saveCustomer, updateCustomer, checkMobileDuplicate, duplicateMobileMessage,
+  LeadOwnedError, assignCustomer, getCustomerStage,
+} from '../lib/db/customers'
 import { addEvent, updateEventData } from '../lib/db/events'
+import { friendlyDbError } from '../lib/db/errors'
 import { uploadPhoto } from '../lib/db/storage'
 import { stampPhoto, getGeoLocationWithStatus } from '../lib/utils/stampPhoto'
 
@@ -375,7 +379,7 @@ export default function S_CustomerForm() {
           const existingId = customerFormInitialData?.customerId || activeCustomer?.id || null
           const dup = await checkMobileDuplicate(data.mobile.trim(), existingId)
           if (dup) {
-            setMobileError('This mobile number already exists')
+            setMobileError(duplicateMobileMessage(dup))
             setCheckingMobile(false)
             return
           }
@@ -403,7 +407,7 @@ export default function S_CustomerForm() {
       if (data.mobile.trim()) {
         const dup = await checkMobileDuplicate(data.mobile.trim(), existingCustomerId)
         if (dup) {
-          setMobileError('This mobile number already exists')
+          setMobileError(duplicateMobileMessage(dup))
           setStep(0)
           return
         }
@@ -428,10 +432,11 @@ export default function S_CustomerForm() {
           owner_name: data.ownerName,
           area:       data.city,
           landmark:   data.market,
-          stage:      'visited',
         })
         cid = customer.customer_id
-        if (profile?.id) assignCustomer(cid, profile.id).catch(() => {})
+        // The DB default makes the creator the owner (migration 003). Fallback for a
+        // database without it: assign explicitly, and fail loudly if that fails.
+        if (!customer.assigned_to && profile?.id) await assignCustomer(cid, profile.id)
       }
 
       // Upload any new photos, carry over existing ones
@@ -448,20 +453,25 @@ export default function S_CustomerForm() {
 
       const { photos: _blobs, capturedAt: _ts, ...formData } = data
 
-      let visitEventId
+      let visitEventId = null
       if (existingEventId) {
-        // Update the existing visit_done event in-place — one event per customer
-        await updateEventData(existingEventId, { ...formData, photoUrls })
-        visitEventId = existingEventId
-      } else {
+        // Update the existing visit_done event in-place — one event per customer.
+        // A lead opened before the visit-id fix may carry its customer_id here;
+        // that update matches nothing, so record the visit as new instead.
+        try {
+          await updateEventData(existingEventId, { ...formData, photoUrls })
+          visitEventId = existingEventId
+        } catch (err) {
+          if (err.message !== 'event_not_found') throw err
+        }
+      }
+      if (!visitEventId) {
         const event = await addEvent(cid, 'visit_done', { ...formData, photoUrls }, salesmanName)
         visitEventId = event.event_id
       }
 
-      // Preserve stage/painFilled/painData if pain discovery was already done
-      const STAGE_ORDER = ['visited', 'pain_identified', 'roi_shown', 'login_started', 'approved', 'disbursed']
-      const existingStageRank = STAGE_ORDER.indexOf(activeCustomer?.stage || 'visited')
-      const preservedStage = existingStageRank > 0 ? activeCustomer.stage : 'visited'
+      // The DB decided the stage (forward-only); show what it settled on.
+      const { stage: savedStage } = await getCustomerStage(cid)
 
       activateCustomer({
         id:                  cid,
@@ -471,7 +481,7 @@ export default function S_CustomerForm() {
         mobile:              data.mobile,
         city:                data.city,
         market:              data.market,
-        stage:               preservedStage,
+        stage:               savedStage,
         // Store full engagement data so workspace can pre-fill on reopen
         bizTypes:            data.bizTypes,
         bizTypeOther:        data.bizTypeOther,
@@ -502,7 +512,8 @@ export default function S_CustomerForm() {
 
       setSubmitted(true)
     } catch (err) {
-      setSubmitError(err.message || 'Submit karne mein error aayi. Dobara try karein.')
+      if (err instanceof LeadOwnedError) { setMobileError(err.message); setStep(0) }
+      else setSubmitError(friendlyDbError(err, 'Submit karne mein error aayi. Dobara try karein.'))
     } finally {
       setSubmitting(false)
     }

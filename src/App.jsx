@@ -1,4 +1,7 @@
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { AppProvider, useApp } from './context/AppContext'
+import AdminErrorBoundary   from './admin/AdminErrorBoundary'
+import { isAdminPath, canAccessAdmin } from './admin/access'
 import S1_BusinessDetails   from './screens/S1_BusinessDetails'
 import S2_Problems          from './screens/S2_Problems'
 import S3_COD               from './screens/S3_COD'
@@ -17,6 +20,20 @@ import S_Workspace          from './screens/S_Workspace'
 import S_Auth               from './screens/S_Auth'
 import S_PendingApproval    from './screens/S_PendingApproval'
 import S_AdminPanel         from './screens/S_AdminPanel'
+
+// Desktop admin console: separate chunk, only fetched when an admin opens /admin.
+const AdminApp = lazy(() => import('./admin/AdminApp'))
+
+/** Tracks whether the URL is inside /admin (back/forward included). */
+function useOnAdminPath() {
+  const [onAdminPath, setOnAdminPath] = useState(() => isAdminPath(window.location.pathname))
+  useEffect(() => {
+    const sync = () => setOnAdminPath(isAdminPath(window.location.pathname))
+    window.addEventListener('popstate', sync)
+    return () => window.removeEventListener('popstate', sync)
+  }, [])
+  return [onAdminPath, setOnAdminPath]
+}
 
 function LoadingScreen() {
   return (
@@ -56,10 +73,33 @@ function AppInner() {
     adminPanelOpen,
   } = useApp()
 
+  const [onAdminPath, setOnAdminPath] = useOnAdminPath()
+  const adminAllowed = canAccessAdmin(profile)
+
+  // Logged-in users without admin access who land on /admin go back to the app.
+  useEffect(() => {
+    if (onAdminPath && profile && !adminAllowed) {
+      window.history.replaceState(null, '', '/')
+      setOnAdminPath(false)
+    }
+  }, [onAdminPath, profile, adminAllowed, setOnAdminPath])
+
   // ── Auth gate ─────────────────────────────────────────────────────────────
   if (authLoading)               return <LoadingScreen />
   if (!session || !profile)      return <S_Auth />
   if (!profile.is_approved)      return <S_PendingApproval />
+
+  // ── Desktop admin console (/admin) ────────────────────────────────────────
+  if (onAdminPath) {
+    if (!adminAllowed) return <LoadingScreen />   // redirect effect above runs next
+    return (
+      <AdminErrorBoundary>
+        <Suspense fallback={<LoadingScreen />}>
+          <AdminApp />
+        </Suspense>
+      </AdminErrorBoundary>
+    )
+  }
 
   // ── Admin panel (full-screen overlay) ─────────────────────────────────────
   if (adminPanelOpen)            return <S_AdminPanel />

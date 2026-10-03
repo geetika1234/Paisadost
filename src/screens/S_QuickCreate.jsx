@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
-import { saveCustomer, checkMobileDuplicate, getCustomerFull, assignCustomer } from '../lib/db/customers'
+import {
+  saveCustomer, checkMobileDuplicate, duplicateMobileMessage, LeadOwnedError,
+  getCustomerFull, assignCustomer,
+} from '../lib/db/customers'
 import { addEvent } from '../lib/db/events'
+import { friendlyDbError } from '../lib/db/errors'
 import { getCurrentUser } from '../lib/db/dashboard'
 
 export default function S_QuickCreate() {
@@ -27,12 +31,13 @@ export default function S_QuickCreate() {
     try {
       const trimmedMobile = form.mobile.trim()
 
-      // Mobile duplicate check — block creation if another customer owns this number
+      // Mobile duplicate check — block creation if any lead already has this number.
+      // Only offer "open existing" when the caller is allowed to open it.
       if (trimmedMobile) {
         const dup = await checkMobileDuplicate(trimmedMobile, null)
         if (dup) {
-          setMobileError('This mobile number already exists')
-          setDuplicateId(dup)
+          setMobileError(duplicateMobileMessage(dup))
+          setDuplicateId(dup.canEdit ? dup.customerId : null)
           return
         }
       }
@@ -45,13 +50,15 @@ export default function S_QuickCreate() {
         mobile:     trimmedMobile         || null,
         area:       form.city.trim(),
         landmark:   form.area.trim()      || null,
-        stage:      'visited',
       })
       const cid = customer.customer_id
-      // Auto-assign to creator
-      if (profile?.id) assignCustomer(cid, profile.id).catch(() => {})
-      // Create a visit_done event so this lead appears in the dashboard
-      const visitEvent = await addEvent(cid, 'visit_done', {
+      // The DB default makes the creator the owner (migration 003). Fallback for a
+      // database without it: assign explicitly, and fail loudly if that fails.
+      if (!customer.assigned_to && profile?.id) await assignCustomer(cid, profile.id)
+      // A quick-created lead is a NEW lead, not a visit: the visit is recorded
+      // later from the visit form, with photos. The lead list reads the
+      // customers table, so the lead shows up without any visit event.
+      await addEvent(cid, 'lead_created', {
         shopName:  customer.shop_name,
         ownerName: customer.owner_name || '',
         mobile:    customer.mobile     || '',
@@ -60,17 +67,18 @@ export default function S_QuickCreate() {
       }, salesman)
       activateCustomer({
         id:           cid,
-        visitEventId: visitEvent.event_id,
+        visitEventId: null,   // no visit yet: the visit form will insert one
         shopName:     customer.shop_name,
         ownerName:    customer.owner_name || '',
         mobile:       customer.mobile     || '',
         city:         customer.area       || '',
         market:       customer.landmark   || '',
-        stage:        'visited',
+        stage:        customer.stage || 'new',
       })
       closeQuickCreate()
     } catch (err) {
-      setError(err.message || 'Customer banana mein error aayi.')
+      if (err instanceof LeadOwnedError) setMobileError(err.message)
+      else setError(friendlyDbError(err, 'Customer banana mein error aayi.'))
     } finally {
       setSaving(false)
     }
@@ -90,7 +98,7 @@ export default function S_QuickCreate() {
         mobile:       customer.mobile       || '',
         city:         customer.area         || '',
         market:       customer.landmark     || '',
-        stage:        customer.stage        || 'visited',
+        stage:        customer.stage        || 'new',
       })
       closeQuickCreate()
     } catch (err) {

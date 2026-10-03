@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { getAllLoans, deleteLoan } from '../lib/db/loans'
+import { friendlyDbError } from '../lib/db/errors'
 import { fmtINR } from '../logic/calculations'
 
 function formatDate(iso) {
@@ -45,7 +46,7 @@ export default function S_SavedCustomers() {
       setCustomers(prev => prev.filter(c => c.id !== id))
       setConfirmDeleteId(null)
     } catch (err) {
-      setError(err.message || 'Delete karne mein error aayi.')
+      setError(friendlyDbError(err, 'Delete karne mein error aayi.'))
     } finally {
       setDeleting(false)
     }

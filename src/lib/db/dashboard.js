@@ -277,7 +277,6 @@ export async function saveVisitedCustomer(salesman, formData) {
     owner_name: ownerName,
     area:       city,
     landmark:   market,
-    stage:      'visited',
   })
 
   // 2. Insert visit_done event — full formData stored in events.data JSON.
@@ -344,7 +343,8 @@ export async function getAssignedLeads(profileId) {
     const visitEv = visitMap[c.customer_id]
     const d = visitEv?.data || {}
     return {
-      id:                visitEv?.event_id || c.customer_id,
+      id:                visitEv?.event_id || c.customer_id,   // row key + file-login lookup
+      visitEventId:      visitEv?.event_id || null,            // null until a real visit is recorded
       customerId:        c.customer_id,
       customerCreatedAt: c.created_at,
       painData:   painMap[c.customer_id] || null,
@@ -355,7 +355,7 @@ export async function getAssignedLeads(profileId) {
       mobile:     c.mobile     || d.mobile    || '',
       city:       c.area       || d.city      || '',
       market:     c.landmark   || d.market    || '',
-      stage:      c.stage      || 'visited',
+      stage:      c.stage      || 'new',
       visitedAt:  visitEv?.created_at || c.created_at,
       fileLogin:  loggedIn.has(c.customer_id),
       response:   responseMap[c.customer_id] || null,

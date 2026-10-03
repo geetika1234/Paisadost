@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { PROBLEMS } from '../logic/problems'
 import { addEvent } from '../lib/db/events'
+import { getCustomerStage } from '../lib/db/customers'
+import { friendlyDbError } from '../lib/db/errors'
 import { getCurrentUser } from '../lib/db/dashboard'
 
 // ── Sub-problem questions ────────────────────────────────────────────────────
@@ -246,15 +248,11 @@ export default function S_PainDiscovery() {
         monthlyLoss:     monthlyLoss ? Number(monthlyLoss) : null,
         notesByQuestion: notesByQ,
       }, getCurrentUser())
-      // Persist answers in activeCustomer — never downgrade stage if already higher
-      const STAGE_ORDER = ['visited', 'pain_identified', 'roi_shown', 'login_started', 'approved', 'disbursed']
-      const currentRank = STAGE_ORDER.indexOf(activeCustomer?.stage || 'visited')
-      const preservedStage = currentRank > STAGE_ORDER.indexOf('pain_identified')
-        ? activeCustomer.stage
-        : 'pain_identified'
+      // The DB decided the stage (forward-only); show what it settled on.
+      const { stage: savedStage } = await getCustomerStage(customerId)
 
       updateActiveCustomer({
-        stage:     preservedStage,
+        stage:     savedStage,
         painFilled: true,
         painData: {
           primaryProblem: inputs.problems[0]  || null,
@@ -269,7 +267,7 @@ export default function S_PainDiscovery() {
       setSaved(true)
       setTimeout(() => closePainDiscovery(), 1500)
     } catch (err) {
-      setSaveError(err.message || 'Save failed. Please try again.')
+      setSaveError(friendlyDbError(err, 'Save failed. Please try again.'))
     } finally {
       setSaving(false)
     }

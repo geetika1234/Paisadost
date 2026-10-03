@@ -4,6 +4,7 @@ import { saveLoan } from '../lib/db/loans'
 import { getSession, onAuthStateChange } from '../lib/auth'
 import { getProfile } from '../lib/db/profiles'
 import { setCurrentUser } from '../lib/db/dashboard'
+import { friendlyDbError } from '../lib/db/errors'
 
 const AppContext = createContext(null)
 
@@ -177,12 +178,12 @@ export function AppProvider({ children }) {
       activateCustomer({
         ...(activeCustomer || {}),
         id:             cid,
-        stage:          'roi_shown',
+        stage:          customer.stage,
         roiFilled:      true,
         savedROIInputs: inputs,   // preserve just-saved inputs so form re-opens with data
       })
     } catch (err) {
-      setSaveError(err.message || 'Save failed. Please try again.')
+      setSaveError(friendlyDbError(err, 'Save failed. Please try again.'))
       throw err
     } finally {
       setSaving(false)

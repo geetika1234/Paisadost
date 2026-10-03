@@ -5,21 +5,12 @@ import { createReminder, getRemindersForCustomer, completeReminder, updateRemind
 import { addNote, getNotes, getLoanRequirement, saveLoanRequirement } from '../lib/db/events'
 import { calculateROI, calculateCOD, calcEMI } from '../logic/calculations'
 import { PROBLEMS } from '../logic/problems'
+import { getStage, stageChipClass, hasReachedStage } from '../logic/stages'
 
 // Flat tag → label map for sub-problems
 const SUB_LABEL = {}
 PROBLEMS.forEach(p => p.subProblems.forEach(sp => { SUB_LABEL[sp.tag] = sp.label }))
 
-const STAGE_LABEL = {
-  visited:         { label: 'Visited',    color: 'bg-brand-100 text-brand-700'   },
-  pain_identified: { label: 'Pain Done',  color: 'bg-purple-100 text-purple-700'   },
-  roi_shown:       { label: 'ROI Shown',  color: 'bg-blue-100 text-blue-700'       },
-  login_started:   { label: 'Login Done', color: 'bg-green-100 text-green-700'     },
-  approved:        { label: 'Approved',   color: 'bg-emerald-100 text-emerald-700' },
-  disbursed:       { label: 'Disbursed',  color: 'bg-teal-100 text-teal-700'       },
-}
-
-const ROI_STAGES = new Set(['roi_shown', 'login_started', 'approved', 'disbursed'])
 
 const EMPTY_LOAN_REQ = {
   loanRequired: '', familyIncome: '', hasExistingLoan: null,
@@ -295,10 +286,10 @@ export default function S_Workspace() {
     )
   }
 
-  const stage        = STAGE_LABEL[activeCustomer.stage] || STAGE_LABEL.visited
+  const stage        = { label: getStage(activeCustomer.stage).label, color: stageChipClass(activeCustomer.stage) }
   const engagementDone = !!activeCustomer.engagementFilled
   const painDone       = !!activeCustomer.painFilled
-  const roiDone        = !!activeCustomer.roiFilled || ROI_STAGES.has(activeCustomer.stage)
+  const roiDone        = !!activeCustomer.roiFilled || hasReachedStage(activeCustomer.stage, 'roi_shown')
   const pain           = activeCustomer.painData || {}
 
   // ── Derived values ────────────────────────────────────────────────────────
@@ -325,7 +316,7 @@ export default function S_Workspace() {
     (response === 'thinking'                                          ? 1 : 0) +
     (response === 'not_interested'                                    ? -2 : 0) +
     (pain.priority === 'abhi'                                         ? 2 : 0) +
-    (['login_started','approved','disbursed'].includes(activeCustomer.stage) ? 2 : 0) +
+    (hasReachedStage(activeCustomer.stage, 'login_started')            ? 2 : 0) +
     (activeCustomer.stage === 'roi_shown'                             ? 1 : 0)
   const intentLabel = intentScore >= 4 ? '🔥 High'
                     : intentScore >= 1  ? '🟡 Medium'

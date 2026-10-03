@@ -6,8 +6,10 @@ import {
   saveCustomerResponse,
 } from '../lib/db/dashboard'
 import { deleteCustomer } from '../lib/db/customers'
+import { friendlyDbError } from '../lib/db/errors'
 import { PROBLEMS } from '../logic/problems'
 import { calcEMI, calculateCOD, calculateROI } from '../logic/calculations'
+import { getStage, hasReachedStage } from '../logic/stages'
 
 // Flat tag → label map for all sub-problems
 const SUB_LABEL = {}
@@ -19,17 +21,6 @@ const DAILY_TARGET   = 20
 const MONTHLY_TARGET = 400
 const LOGIN_TARGET   = 40
 
-const STAGE_LABEL = {
-  visited:         { label: 'Visited'     },
-  pain_identified: { label: 'Pain Done'   },
-  roi_shown:       { label: 'ROI Shown'   },
-  login_started:   { label: 'Login Done'  },
-  approved:        { label: 'Approved'    },
-  disbursed:       { label: 'Disbursed'   },
-}
-
-// Stages where ROI has been shown
-const ROI_STAGES = new Set(['roi_shown', 'login_started', 'approved', 'disbursed'])
 
 // ── Date filter bounds ────────────────────────────────────────────────────────
 function getDateBounds(filter, customFrom, customTo) {
@@ -235,8 +226,8 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, salesman })
                        : response === 'thinking'       ? '🟡 Soch Raha'
                        : response === 'not_interested' ? '🔴 Nahi'
                        : null
-  const stageLabel     = (STAGE_LABEL[customer.stage] || STAGE_LABEL.visited).label
-  const roiShown       = ROI_STAGES.has(customer.stage) || !!roiData
+  const stageLabel     = getStage(customer.stage).label
+  const roiShown       = hasReachedStage(customer.stage, 'roi_shown') || !!roiData
 
   // ROI line
   let roiLine = null
@@ -416,12 +407,14 @@ export default function S_Dashboard() {
       roiFilled = true
     }
 
-    const stage = customer.stage || 'visited'
+    const stage = customer.stage || 'new'
 
     activateCustomer({
       savedROIInputs,
       id:                  customer.customerId,
-      visitEventId:        customer.id,          // visit event_id for engagement form updates
+      // Real visit_done event id, or null so the visit form records a new visit
+      // (customer.id falls back to the customer_id when there is no visit yet).
+      visitEventId:        customer.visitEventId,
       shopName:            customer.shopName,
       ownerName:           customer.ownerName,
       mobile:              customer.mobile,
@@ -509,7 +502,7 @@ export default function S_Dashboard() {
       await markCustomerFileLogin(user, customerId)
       await loadDashboard(user)
     } catch (err) {
-      setError(err.message || 'File login mark karne mein error aayi.')
+      setError(friendlyDbError(err, 'File login mark karne mein error aayi.'))
     }
   }
 
@@ -525,7 +518,7 @@ export default function S_Dashboard() {
       // Refresh stats since visit count changed
       getDashboardStats(user).then(setData).catch(() => {})
     } catch (err) {
-      setError(err.message || 'Delete karne mein error aayi.')
+      setError(friendlyDbError(err, 'Delete karne mein error aayi.'))
       setDeletingCustomer(null)
     } finally {
       setDeleteLoading(false)

@@ -1,15 +1,55 @@
 import { supabase } from '../supabase'
 
+const UNIQUE_VIOLATION = '23505'
+
+/**
+ * Thrown when a mobile number already belongs to a lead the caller may not
+ * edit (another agent's, or one with no owner). Carries what the UI needs to
+ * explain it without exposing the other lead.
+ */
+export class LeadOwnedError extends Error {
+  constructor(ownerName) {
+    super(ownerName
+      ? `Yeh number ${ownerName} ki lead mein pehle se hai.`
+      : 'Yeh number pehle se ek lead mein hai jo kisi ko assigned nahi hai. Admin se assign karwayein.')
+    this.name = 'LeadOwnedError'
+    this.ownerName = ownerName || null
+  }
+}
+
+/**
+ * findCustomerByMobile(mobile)
+ * Looks up a mobile across ALL leads via the find_customer_by_mobile RPC, so it
+ * keeps working once RLS hides other agents' leads.
+ * Returns null, or { customerId, isMine, canEdit, ownerName } where customerId
+ * is null unless the caller may open that lead.
+ */
+export async function findCustomerByMobile(mobile) {
+  const clean = mobile?.trim()
+  if (!clean) return null
+  const { data, error } = await supabase.rpc('find_customer_by_mobile', { p_mobile: clean })
+  if (error) throw error
+  const row = data?.[0]
+  if (!row) return null
+  return {
+    customerId: row.customer_id || null,
+    isMine:     !!row.is_mine,
+    canEdit:    !!row.can_edit,
+    ownerName:  row.owner_name || null,
+  }
+}
+
 /**
  * saveCustomer(data)
  * Create or update a customer.
- * - If mobile exists in DB → update that record.
- * - If no mobile or new mobile → insert new record.
+ * - Mobile belongs to a lead the caller may edit → update that record.
+ * - Mobile belongs to someone else's lead → throws LeadOwnedError (no write).
+ * - No mobile or new mobile → insert; the DB sets assigned_to = caller.
  * Only fields present in `data` are written (partial update safe).
  */
 export async function saveCustomer({
   name, mobile, shop_name, owner_name,
-  area, landmark, business_type, intent_level, stage,
+  area, landmark, business_type, intent_level,
 }) {
   const cleanMobile = mobile?.trim() || null
 
@@ -22,34 +62,34 @@ export async function saveCustomer({
   if (landmark      !== undefined) payload.landmark      = landmark?.trim()      || null
   if (business_type !== undefined) payload.business_type = business_type?.trim() || null
   if (intent_level  !== undefined) payload.intent_level  = intent_level
-  if (stage         !== undefined) payload.stage         = stage
   if (mobile        !== undefined) payload.mobile        = cleanMobile
 
   if (cleanMobile) {
-    // Try to find existing customer by mobile
-    const { data: existing, error: findErr } = await supabase
-      .from('customers')
-      .select('customer_id')
-      .eq('mobile', cleanMobile)
-      .maybeSingle()
-    if (findErr) throw findErr
-
-    if (existing) {
-      const { data, error } = await supabase
-        .from('customers')
-        .update(payload)
-        .eq('customer_id', existing.customer_id)
-        .select()
-        .single()
-      if (error) throw error
-      return data
-    }
+    const existing = await findCustomerByMobile(cleanMobile)
+    if (existing) return updateExisting(existing, payload)
   }
 
-  // No existing customer — insert new
   const { data, error } = await supabase
     .from('customers')
     .insert(payload)
+    .select()
+    .single()
+
+  if (error?.code === UNIQUE_VIOLATION && cleanMobile) {
+    // Another agent saved the same number between our lookup and insert.
+    const existing = await findCustomerByMobile(cleanMobile)
+    if (existing) return updateExisting(existing, payload)
+  }
+  if (error) throw error
+  return data
+}
+
+async function updateExisting(existing, payload) {
+  if (!existing.canEdit || !existing.customerId) throw new LeadOwnedError(existing.ownerName)
+  const { data, error } = await supabase
+    .from('customers')
+    .update(payload)
+    .eq('customer_id', existing.customerId)
     .select()
     .single()
   if (error) throw error
@@ -91,31 +131,33 @@ export async function getCustomerFull(customerId) {
 
 /**
  * checkMobileDuplicate(mobile, excludeCustomerId)
- * Returns the customer_id of any OTHER customer that already owns this mobile.
- * Returns null if mobile is free to use.
+ * Returns the findCustomerByMobile() result when ANOTHER lead already has this
+ * mobile, or null if the number is free (or belongs to excludeCustomerId).
  */
 export async function checkMobileDuplicate(mobile, excludeCustomerId) {
-  if (!mobile?.trim()) return null
-  let query = supabase
-    .from('customers')
-    .select('customer_id')
-    .eq('mobile', mobile.trim())
-  if (excludeCustomerId) query = query.neq('customer_id', excludeCustomerId)
-  const { data, error } = await query.maybeSingle()
-  if (error) throw error
-  return data?.customer_id || null
+  const existing = await findCustomerByMobile(mobile)
+  if (!existing) return null
+  if (excludeCustomerId && existing.customerId === excludeCustomerId) return null
+  return existing
+}
+
+/**
+ * duplicateMobileMessage(dup)
+ * One user-facing sentence for a checkMobileDuplicate() hit.
+ */
+export function duplicateMobileMessage(dup) {
+  if (dup.canEdit) return 'Yeh number aapki ek lead mein pehle se hai.'
+  return new LeadOwnedError(dup.ownerName).message
 }
 
 /**
  * deleteCustomer(customerId)
- * Deletes the customer and all related data (events, loans, repayments)
- * via ON DELETE CASCADE foreign keys in the schema.
+ * Deletes the customer and all related data via the delete_customer RPC.
+ * The DB allows admins any lead, and owners only within 24h of creating it,
+ * and writes an audit snapshot first (migration 006).
  */
 export async function deleteCustomer(customerId) {
-  const { error } = await supabase
-    .from('customers')
-    .delete()
-    .eq('customer_id', customerId)
+  const { error } = await supabase.rpc('delete_customer', { p_customer_id: customerId })
   if (error) throw error
 }
 
@@ -150,7 +192,7 @@ export async function getAllCustomersAdmin() {
  * Safe to call with any subset of fields.
  */
 export async function updateCustomer(customerId, data) {
-  const ALLOWED = ['name', 'shop_name', 'owner_name', 'mobile', 'area', 'landmark', 'business_type', 'intent_level', 'stage']
+  const ALLOWED = ['name', 'shop_name', 'owner_name', 'mobile', 'area', 'landmark', 'business_type', 'intent_level']
   const payload = {}
   for (const key of ALLOWED) {
     const v = data[key]
@@ -165,4 +207,19 @@ export async function updateCustomer(customerId, data) {
     .single()
   if (error) throw error
   return updated
+}
+
+/**
+ * getCustomerStage(customerId)
+ * The stage the database settled on after an event (see addEvent). Screens
+ * call this instead of guessing, because the trigger may keep a higher stage.
+ */
+export async function getCustomerStage(customerId) {
+  const { data, error } = await supabase
+    .from('customers')
+    .select('stage, stage_rank, status')
+    .eq('customer_id', customerId)
+    .single()
+  if (error) throw error
+  return data
 }

@@ -3,18 +3,11 @@ import { useApp } from '../context/AppContext'
 import { getAllProfiles, approveUser, updateProfile } from '../lib/db/profiles'
 import { getAllCustomersAdmin, assignCustomer } from '../lib/db/customers'
 import { getOpenReminders } from '../lib/db/reminders'
+import { friendlyDbError } from '../lib/db/errors'
+import { getStage, stageChipClass } from '../logic/stages'
 
 const ROLES = ['sales', 'manager', 'admin']
 const ROLE_LABEL = { sales: '👤 Sales', manager: '🧑‍💼 Manager', admin: '👑 Admin' }
-
-const STAGE_LABEL = {
-  visited:         { label: 'Visited',    cls: 'bg-brand-100 text-brand-700'  },
-  pain_identified: { label: 'Pain Done',  cls: 'bg-purple-100 text-purple-700'  },
-  roi_shown:       { label: 'ROI Shown',  cls: 'bg-blue-100 text-blue-700'      },
-  login_started:   { label: 'Login Done', cls: 'bg-green-100 text-green-700'    },
-  approved:        { label: 'Approved',   cls: 'bg-emerald-100 text-emerald-700' },
-  disbursed:       { label: 'Disbursed',  cls: 'bg-teal-100 text-teal-700'      },
-}
 
 export default function S_AdminPanel() {
   const { closeAdminPanel, profile: myProfile } = useApp()
@@ -37,7 +30,7 @@ export default function S_AdminPanel() {
   async function load() {
     setLoading(true); setError(null)
     try { setProfiles(await getAllProfiles()) }
-    catch (err) { setError(err.message) }
+    catch (err) { setError(friendlyDbError(err)) }
     finally { setLoading(false) }
   }
 
@@ -46,20 +39,20 @@ export default function S_AdminPanel() {
     try {
       await approveUser(userId)
       setProfiles(prev => prev.map(p => p.id === userId ? { ...p, is_approved: true } : p))
-    } catch (err) { setError(err.message) }
+    } catch (err) { setError(friendlyDbError(err)) }
   }
 
   async function loadLeads() {
     setLeadsLoading(true); setError(null)
     try { setAllLeads(await getAllCustomersAdmin()) }
-    catch (err) { setError(err.message) }
+    catch (err) { setError(friendlyDbError(err)) }
     finally { setLeadsLoading(false) }
   }
 
   async function loadReminders() {
     setRemindersLoading(true); setError(null)
     try { setAllReminders(await getOpenReminders(null)) }
-    catch (err) { setError(err.message) }
+    catch (err) { setError(friendlyDbError(err)) }
     finally { setRemindersLoading(false) }
   }
 
@@ -71,7 +64,7 @@ export default function S_AdminPanel() {
         l.customer_id === customerId ? { ...l, assigned_to: profileId } : l
       ))
       setExpandedLead(null)
-    } catch (err) { setError(err.message) }
+    } catch (err) { setError(friendlyDbError(err)) }
   }
 
   async function handleRoleChange(userId, role) {
@@ -79,7 +72,7 @@ export default function S_AdminPanel() {
     try {
       await updateProfile(userId, { role })
       setProfiles(prev => prev.map(p => p.id === userId ? { ...p, role } : p))
-    } catch (err) { setError(err.message) }
+    } catch (err) { setError(friendlyDbError(err)) }
   }
 
   const pending  = profiles.filter(p => !p.is_approved)
@@ -141,6 +134,9 @@ export default function S_AdminPanel() {
             className="h-6 w-auto object-contain mb-1"
           />
           <h1 className="text-lg font-extrabold mt-0.5">👑 Admin Panel</h1>
+          <a href="/admin" className="text-xs font-bold text-brand-600 underline underline-offset-2">
+            Desktop view kholein →
+          </a>
         </div>
         <button
           onClick={closeAdminPanel}
@@ -247,7 +243,7 @@ export default function S_AdminPanel() {
             {filteredLeads.map(lead => {
               const assignee     = approved.find(p => p.id === lead.assigned_to)
               const isExpanded   = expandedLead === lead.customer_id
-              const stageInfo    = STAGE_LABEL[lead.stage] || STAGE_LABEL.visited
+              const stageInfo    = { label: getStage(lead.stage).label, cls: stageChipClass(lead.stage) }
               return (
                 <div key={lead.customer_id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                   {/* Lead info row */}

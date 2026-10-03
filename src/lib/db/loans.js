@@ -1,5 +1,5 @@
 import { supabase } from '../supabase'
-import { saveCustomer, updateCustomer } from './customers'
+import { saveCustomer, deleteCustomer, getCustomerStage } from './customers'
 import { addEvent } from './events'
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -30,21 +30,18 @@ export async function createLoan({ customer_id, loan_amount, tenure, interest_ra
 export async function saveLoan(inputs, existingCustomerId = null) {
   let customerId = existingCustomerId
 
-  if (customerId) {
-    // 1a. Known customer — just update stage, no mobile lookup needed
-    await updateCustomer(customerId, { stage: 'roi_shown' })
-  } else {
-    // 1b. No known ID — upsert by mobile (legacy / standalone flow)
+  if (!customerId) {
+    // 1. No known ID — upsert by mobile (legacy / standalone flow)
     const customer = await saveCustomer({
       name:          inputs.customerName,
       mobile:        inputs.customerMobile,
       business_type: inputs.businessType,
-      stage:         'roi_shown',
     })
     customerId = customer.customer_id
   }
 
-  // 2. Log roi_shown event — data carries the FULL inputs so "Load Karen" works
+  // 2. Log roi_shown event — data carries the FULL inputs so "Load Karen" works.
+  //    The DB moves the stage to ROI Shown unless the lead is already further.
   await addEvent(customerId, 'roi_shown', inputs)
 
   // 3. Upsert loan record
@@ -74,7 +71,8 @@ export async function saveLoan(inputs, existingCustomerId = null) {
     })
   }
 
-  return { customer_id: customerId }
+  const { stage } = await getCustomerStage(customerId)
+  return { customer_id: customerId, stage }
 }
 
 /**
@@ -123,9 +121,5 @@ export async function getAllLoans() {
  *   events, loans, repayments — all cascade via ON DELETE CASCADE.
  */
 export async function deleteLoan(customerId) {
-  const { error } = await supabase
-    .from('customers')
-    .delete()
-    .eq('customer_id', customerId)
-  if (error) throw error
+  return deleteCustomer(customerId)
 }

@@ -1,0 +1,60 @@
+/*
+ * Desktop admin surface. Loaded only with the lazy admin chunk.
+ *
+ * src/index.css styles the whole app as a centered 420px phone shell
+ * (#root is a centering flexbox, body is lavender). AdminApp adds the
+ * `admin-root` class to <html> while mounted to switch that off.
+ */
+
+:root {
+  --admin-bg:          #F8FAFC;  /* slate-50: page ground */
+  --admin-surface:     #FFFFFF;
+  --admin-border:      #E2E8F0;  /* slate-200 */
+  --admin-text:        #334155;  /* slate-700, >7:1 on white */
+  --admin-text-muted:  #64748B;  /* slate-500 */
+  --admin-primary:     #2E5835;  /* brand-600 */
+  --admin-primary-ink: #1F3D26;  /* brand-700 */
+  --admin-primary-soft:#EEF5EF;  /* brand-50 */
+  --admin-accent:      #F08030;  /* accent-400: one main CTA per page */
+  --admin-danger:      #DC2626;
+  --admin-success:     #16A34A;
+  --admin-warn:        #D97706;
+}
+
+html.admin-root body {
+  background: var(--admin-bg);
+  overscroll-behavior: auto;
+}
+
+html.admin-root #root {
+  display: block;
+}
+
+.admin-shell {
+  color: var(--admin-text);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-shell ::selection {
+  background: var(--admin-primary-soft);
+  color: var(--admin-primary-ink);
+}
+
+.admin-shell :focus-visible {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.admin-skip-link {
+  position: absolute;
+  left: -9999px;
+}
+.admin-skip-link:focus {
+  left: 16px;
+  top: 12px;
+  z-index: 50;
+  background: var(--admin-surface);
+  padding: 8px 12px;
+}
