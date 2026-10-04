@@ -17,6 +17,8 @@ const MESSAGES = {
   status_reason_too_long:          'Note chhota rakhein (300 characters tak).',
   status_rejected_needs_login:     'Rejected sirf Login Done ke baad ho sakta hai.',
   status_invalid:                  'Yeh status maanya nahi hai.',
+  admin_only:                      'Yeh sirf admin ya manager kar sakte hain.',
+  bulk_limit:                      'Ek baar mein 100 leads tak hi chun sakte hain.',
 }
 
 export function friendlyDbError(err, fallback = 'Kuch galat ho gaya. Dobara try karein.') {

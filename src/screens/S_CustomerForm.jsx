@@ -7,6 +7,7 @@ import {
 } from '../lib/db/customers'
 import { addEvent, updateEventData } from '../lib/db/events'
 import { friendlyDbError } from '../lib/db/errors'
+import StoredPhoto from '../components/StoredPhoto'
 import { uploadPhoto } from '../lib/db/storage'
 import { stampPhoto, getGeoLocationWithStatus } from '../lib/utils/stampPhoto'
 
@@ -551,7 +552,7 @@ export default function S_CustomerForm() {
           {data.photos.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
               {data.photos.map((src, i) => (
-                <img key={i} src={src} alt="" className="w-full aspect-[3/4] object-contain bg-slate-900 rounded-xl" />
+                <StoredPhoto key={i} src={src} alt={`Visit photo ${i + 1}`} className="w-full aspect-[3/4] object-contain bg-slate-900 rounded-xl" />
               ))}
             </div>
           )}
@@ -956,7 +957,7 @@ export default function S_CustomerForm() {
               <div className="grid grid-cols-3 gap-2">
                 {data.photos.map((src, i) => (
                   <div key={i} className="relative rounded-xl overflow-hidden aspect-[3/4] bg-slate-900">
-                    <img src={src} alt="" className="w-full h-full object-contain" />
+                    <StoredPhoto src={src} alt={`Visit photo ${i + 1}`} className="w-full h-full object-contain" />
                     <button
                       onClick={() => removePhoto(i)}
                       className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"

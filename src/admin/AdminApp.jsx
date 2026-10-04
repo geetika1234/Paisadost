@@ -2,37 +2,15 @@ import { useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import AdminLayout from './AdminLayout'
 import PlaceholderPage from './pages/PlaceholderPage'
+import TodayPage from './pages/TodayPage'
+import LeadsPage from './pages/LeadsPage'
 import { ADMIN_BASE } from './access'
 import './admin.css'
 
 // Lazy-loaded from App.jsx, so field agents on the mobile app never download it.
 
-const PAGES = [
-  {
-    path: '/',
-    title: 'Today',
-    summary: 'Aaj kis cheez par aapka dhyan chahiye.',
-    coming: [
-      'Approval ke liye ruke hue users',
-      'Bina owner wali leads',
-      'Overdue follow-ups, agent ke hisaab se',
-      'Login ke baad sanction ka intezaar kar rahi files',
-      'Is mahine ka funnel aur agent table',
-    ],
-  },
-  {
-    path: '/leads',
-    title: 'Leads',
-    summary: 'Saari leads ek jagah: search, filter, assign.',
-    coming: [
-      'Search: dukaan, malik, mobile',
-      'Filters: stage, status, agent, area, date',
-      'Ek saath kai leads assign karna',
-      'Lead kholne par poori history aur loan details',
-      'CSV export',
-    ],
-    useMobileFor: 'leads assign karna',
-  },
+// Sections not built yet: honest placeholders pointing to where the job is done today.
+const PLACEHOLDER_PAGES = [
   {
     path: '/followups',
     title: 'Follow-ups',
@@ -50,8 +28,8 @@ const PAGES = [
   {
     path: '/loans',
     title: 'Loans',
-    summary: 'Sanctioned aur disbursed files, EMI due.',
-    coming: ['Mark Sanctioned', 'Mark Disbursed (UTR ke saath)', 'EMI due aur overdue'],
+    summary: 'ROI mein save hue loan amounts, agent ke hisaab se.',
+    coming: ['Loan amount, tenure aur EMI ki list', 'Login Done files ka loan pipeline'],
   },
 ]
 
@@ -78,7 +56,9 @@ export default function AdminApp() {
       <FocusMainOnNavigate />
       <AdminLayout>
         <Routes>
-          {PAGES.map(p => (
+          <Route path="/" element={<TodayPage />} />
+          <Route path="/leads" element={<LeadsPage />} />
+          {PLACEHOLDER_PAGES.map(p => (
             <Route
               key={p.path}
               path={p.path}
