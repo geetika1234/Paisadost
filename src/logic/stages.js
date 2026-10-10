@@ -19,6 +19,12 @@ export const STAGES = [
   { key: 'login_started',   label: 'Login Done', rank: 80,  event: 'login_started',   bg: 'bg-green-100',   text: 'text-green-700',   dot: 'bg-green-500'   },
 ]
 
+/**
+ * Photos a visit needs before it counts (stage → Visited). Must match
+ * stage_defs.min_photos for 'visited' (migration 014), which the database enforces.
+ */
+export const MIN_VISIT_PHOTOS = 2
+
 const RETIRED_STAGES = [
   { key: 'approved',  label: 'Approved',  rank: 90,  event: null, bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
   { key: 'disbursed', label: 'Disbursed', rank: 100, event: null, bg: 'bg-teal-100',    text: 'text-teal-700',    dot: 'bg-teal-500'    },

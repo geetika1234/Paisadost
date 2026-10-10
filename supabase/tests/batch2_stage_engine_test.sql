@@ -23,8 +23,9 @@ DO $$ BEGIN
   IF (SELECT COUNT(*) FROM public.stage_defs WHERE is_live) <> 5 THEN
     RAISE EXCEPTION 'FAIL 1: expected 5 live stages, found %', (SELECT COUNT(*) FROM public.stage_defs WHERE is_live);
   END IF;
-  IF (SELECT min_photos FROM public.stage_defs WHERE key = 'visited') <> 3 THEN
-    RAISE EXCEPTION 'FAIL 1: visited should need 3 photos (did 008 run?)';
+  -- 008 set 3, 014 set 2; the checks below use whatever is configured.
+  IF (SELECT min_photos FROM public.stage_defs WHERE key = 'visited') < 1 THEN
+    RAISE EXCEPTION 'FAIL 1: visited needs no photos (did 008/014 run?)';
   END IF;
 END $$;
 
@@ -45,6 +46,12 @@ DECLARE
   v_hist  INT;
   v_skip  TEXT[];
   v_by    UUID;
+  v_min   INT := (SELECT min_photos FROM public.stage_defs WHERE key = 'visited');
+  -- photoUrls arrays one short of, and exactly at, the required count
+  v_short JSONB := jsonb_build_object('photoUrls',
+                     COALESCE((SELECT jsonb_agg('p' || g) FROM generate_series(1, v_min - 1) g), '[]'::jsonb));
+  v_full  JSONB := jsonb_build_object('photoUrls',
+                     (SELECT jsonb_agg('p' || g) FROM generate_series(1, v_min) g));
 BEGIN
   -- 2. A new lead starts at 'new', rank 0
   INSERT INTO public.customers (shop_name, mobile) VALUES ('TEST stage lead', '0000000011')
@@ -60,20 +67,20 @@ BEGIN
     RAISE EXCEPTION 'FAIL 3: events.created_by is % not the caller', v_by;
   END IF;
 
-  -- 4. A visit with 2 photos is refused, and the event is not saved
+  -- 4. A visit one photo short is refused, and the event is not saved
   BEGIN
     INSERT INTO public.events (customer_id, event_type, data)
-    VALUES (v_id, 'visit_done', '{"photoUrls": ["a", "b"]}');
-    RAISE EXCEPTION 'FAIL 4: visit with 2 photos was accepted';
+    VALUES (v_id, 'visit_done', v_short);
+    RAISE EXCEPTION 'FAIL 4: visit with % photos was accepted (needs %)', v_min - 1, v_min;
   EXCEPTION WHEN check_violation THEN NULL;
   END;
   IF EXISTS (SELECT 1 FROM public.events WHERE customer_id = v_id AND event_type = 'visit_done') THEN
     RAISE EXCEPTION 'FAIL 4: refused visit event was still saved';
   END IF;
 
-  -- 5. A visit with 3 photos moves the lead to visited, with one history row
+  -- 5. A visit with the required photos moves the lead to visited, with one history row
   INSERT INTO public.events (customer_id, event_type, data)
-  VALUES (v_id, 'visit_done', '{"photoUrls": ["a", "b", "c"]}');
+  VALUES (v_id, 'visit_done', v_full);
   SELECT stage, stage_rank INTO v_stage, v_rank FROM public.customers WHERE customer_id = v_id;
   SELECT COUNT(*) INTO v_hist FROM public.stage_history WHERE customer_id = v_id AND to_stage = 'visited';
   IF v_stage <> 'visited' OR v_rank <> 10 OR v_hist <> 1 THEN

@@ -7,6 +7,11 @@ describe('friendlyDbError', () => {
     expect(friendlyDbError({ message: 'profile_privilege_change_denied' })).toMatch(/sirf admin/)
   })
 
+  it('states the photo count the app asks for', () => {
+    expect(friendlyDbError({ message: 'stage_evidence_missing: visited needs 2 photos, got 1' }))
+      .toBe('Visit save karne ke liye 2 photo zaroori hain.')
+  })
+
   it('keeps unknown errors visible rather than hiding them', () => {
     expect(friendlyDbError({ message: 'network down' })).toBe('network down')
   })

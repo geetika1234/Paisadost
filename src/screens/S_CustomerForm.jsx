@@ -8,6 +8,7 @@ import {
 import { addEvent, updateEventData } from '../lib/db/events'
 import { friendlyDbError } from '../lib/db/errors'
 import StoredPhoto from '../components/StoredPhoto'
+import { MIN_VISIT_PHOTOS } from '../logic/stages'
 import { uploadPhoto } from '../lib/db/storage'
 import { stampPhoto, getGeoLocationWithStatus } from '../lib/utils/stampPhoto'
 
@@ -215,7 +216,7 @@ function fmtDateTime(d) {
 // Safe array helper — always returns an array even if value from Supabase is null/undefined
 const arr = v => Array.isArray(v) ? v : []
 
-const MIN_PHOTOS = 3
+const MIN_PHOTOS = MIN_VISIT_PHOTOS
 
 export default function S_CustomerForm() {
   const { closeCustomerForm, activateCustomer, update, customerFormInitialData, activeCustomer, inputs, profile } = useApp()

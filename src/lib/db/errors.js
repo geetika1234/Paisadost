@@ -1,3 +1,5 @@
+import { MIN_VISIT_PHOTOS } from '../../logic/stages'
+
 /**
  * Maps errors raised by our SQL functions/triggers (supabase/migrations) to
  * messages agents can act on. Unknown errors keep their original message so
@@ -11,7 +13,7 @@ const MESSAGES = {
   admin_self_demotion_blocked:     'Aap apna admin role khud nahi hata sakte.',
   profile_id_immutable:            'Profile ID badli nahi ja sakti.',
   stage_role_denied:               'Yeh step aap nahi kar sakte. Manager se baat karein.',
-  stage_evidence_missing:          'Visit save karne ke liye 3 photo zaroori hain.',
+  stage_evidence_missing:          `Visit save karne ke liye ${MIN_VISIT_PHOTOS} photo zaroori hain.`,
   status_change_denied:            'Is lead ka status aap nahi badal sakte. Admin se baat karein.',
   status_reason_required:          'Reason chunna zaroori hai.',
   status_reason_too_long:          'Note chhota rakhein (300 characters tak).',
