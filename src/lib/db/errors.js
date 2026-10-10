@@ -17,6 +17,7 @@ const MESSAGES = {
   status_reason_too_long:          'Note chhota rakhein (300 characters tak).',
   status_rejected_needs_login:     'Rejected sirf Login Done ke baad ho sakta hai.',
   status_invalid:                  'Yeh status maanya nahi hai.',
+  mobile_is_team_member:           'Yeh number hamari team ke ek member ka hai. Customer ka apna number daalein.',
   admin_only:                      'Yeh sirf admin ya manager kar sakte hain.',
   bulk_limit:                      'Ek baar mein 100 leads tak hi chun sakte hain.',
 }

@@ -17,12 +17,29 @@ export class LeadOwnedError extends Error {
   }
 }
 
+const TEAM_MOBILE_MESSAGE = 'Yeh number hamari team ke ek member ka hai. Customer ka apna number daalein.'
+const TEAM_MOBILE_DB_ERROR = 'mobile_is_team_member'
+
+/**
+ * Thrown when the mobile belongs to an approved team member (migration 013).
+ * Extends LeadOwnedError so every screen that shows mobile conflicts on the
+ * mobile field handles it the same way.
+ */
+export class TeamMobileError extends LeadOwnedError {
+  constructor() {
+    super(null)
+    this.name = 'TeamMobileError'
+    this.message = TEAM_MOBILE_MESSAGE
+  }
+}
+
 /**
  * findCustomerByMobile(mobile)
  * Looks up a mobile across ALL leads via the find_customer_by_mobile RPC, so it
  * keeps working once RLS hides other agents' leads.
- * Returns null, or { customerId, isMine, canEdit, ownerName } where customerId
- * is null unless the caller may open that lead.
+ * Returns null, or { customerId, isMine, canEdit, ownerName, isTeam } where
+ * customerId is null unless the caller may open that lead, and isTeam means
+ * the number belongs to a team member (never a valid lead number).
  */
 export async function findCustomerByMobile(mobile) {
   const clean = mobile?.trim()
@@ -36,6 +53,7 @@ export async function findCustomerByMobile(mobile) {
     isMine:     !!row.is_mine,
     canEdit:    !!row.can_edit,
     ownerName:  row.owner_name || null,
+    isTeam:     !!row.is_team,
   }
 }
 
@@ -80,11 +98,12 @@ export async function saveCustomer({
     const existing = await findCustomerByMobile(cleanMobile)
     if (existing) return updateExisting(existing, payload)
   }
-  if (error) throw error
+  if (error) throwCustomerWriteError(error)
   return data
 }
 
 async function updateExisting(existing, payload) {
+  if (existing.isTeam) throw new TeamMobileError()
   if (!existing.canEdit || !existing.customerId) throw new LeadOwnedError(existing.ownerName)
   const { data, error } = await supabase
     .from('customers')
@@ -92,8 +111,14 @@ async function updateExisting(existing, payload) {
     .eq('customer_id', existing.customerId)
     .select()
     .single()
-  if (error) throw error
+  if (error) throwCustomerWriteError(error)
   return data
+}
+
+/** The DB refuses team-member mobiles (013); surface that as TeamMobileError. */
+function throwCustomerWriteError(error) {
+  if (error?.message?.includes(TEAM_MOBILE_DB_ERROR)) throw new TeamMobileError()
+  throw error
 }
 
 /**
@@ -146,6 +171,7 @@ export async function checkMobileDuplicate(mobile, excludeCustomerId) {
  * One user-facing sentence for a checkMobileDuplicate() hit.
  */
 export function duplicateMobileMessage(dup) {
+  if (dup.isTeam)  return TEAM_MOBILE_MESSAGE
   if (dup.canEdit) return 'Yeh number aapki ek lead mein pehle se hai.'
   return new LeadOwnedError(dup.ownerName).message
 }
@@ -205,7 +231,7 @@ export async function updateCustomer(customerId, data) {
     .eq('customer_id', customerId)
     .select()
     .single()
-  if (error) throw error
+  if (error) throwCustomerWriteError(error)
   return updated
 }
 

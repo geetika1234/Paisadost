@@ -35,12 +35,13 @@ vi.mock('../supabase', () => {
 
 import {
   saveCustomer, checkMobileDuplicate, deleteCustomer, findCustomerByMobile,
-  duplicateMobileMessage, LeadOwnedError,
+  duplicateMobileMessage, LeadOwnedError, TeamMobileError,
 } from './customers'
 
 const lookup = row => ({ data: row ? [row] : [], error: null })
 const colleagueLead = { customer_id: null, is_mine: false, can_edit: false, owner_name: 'Ravi' }
 const myLead        = { customer_id: 'c-mine', is_mine: true, can_edit: true, owner_name: 'Me' }
+const teamNumber    = { customer_id: null, is_mine: false, can_edit: false, owner_name: null, is_team: true }
 
 beforeEach(() => {
   mock.rpcCalls = []
@@ -95,6 +96,26 @@ describe('saveCustomer', () => {
     expect(mock.rpcCalls).toHaveLength(2)
   })
 
+  it('refuses a team member\'s number before writing anything', async () => {
+    mock.rpcResults.push(lookup(teamNumber))
+
+    const err = await saveCustomer({ shop_name: 'Ram Kirana', mobile: '9876500000' }).catch(e => e)
+
+    expect(err).toBeInstanceOf(TeamMobileError)
+    expect(err).toBeInstanceOf(LeadOwnedError)          // screens show it on the mobile field
+    expect(err.message).toContain('team ke ek member')
+    expect(mock.writes).toEqual([])
+  })
+
+  it('turns the database team-number refusal into TeamMobileError', async () => {
+    mock.rpcResults.push(lookup(null))
+    mock.results.insert.push({ data: null, error: { code: '23514', message: 'mobile_is_team_member' } })
+
+    const err = await saveCustomer({ shop_name: 'Ram Kirana', mobile: '9876500000' }).catch(e => e)
+
+    expect(err).toBeInstanceOf(TeamMobileError)
+  })
+
   it('never sends stage, even if a caller passes one (the DB owns stage)', async () => {
     mock.results.insert.push({ data: { customer_id: 'c-new' }, error: null })
 
@@ -124,6 +145,13 @@ describe('checkMobileDuplicate', () => {
     const dup = await checkMobileDuplicate('9876543210', 'c-mine')
     expect(dup).toMatchObject({ customerId: null, canEdit: false, ownerName: 'Ravi' })
     expect(duplicateMobileMessage(dup)).toContain('Ravi')
+  })
+
+  it('flags a team member\'s number with its own message', async () => {
+    mock.rpcResults.push(lookup(teamNumber))
+    const dup = await checkMobileDuplicate('9876500000', 'c-mine')
+    expect(dup).toMatchObject({ isTeam: true, customerId: null })
+    expect(duplicateMobileMessage(dup)).toContain('team ke ek member')
   })
 
   it('explains an unassigned lead instead of naming nobody', async () => {
