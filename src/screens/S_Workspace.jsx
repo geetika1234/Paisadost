@@ -5,18 +5,17 @@ import { createReminder, getRemindersForCustomer, completeReminder, updateRemind
 import { addNote, getNotes, getLoanRequirement, saveLoanRequirement } from '../lib/db/events'
 import { calculateROI, calculateCOD, calcEMI } from '../logic/calculations'
 import { PROBLEMS } from '../logic/problems'
-import { getStage, stageChipClass, hasReachedStage, getStatus } from '../logic/stages'
+import { getStage, stageChipClass, hasReachedStage, stageShowsRoi, getStatus } from '../logic/stages'
 import CloseLeadPanel from '../components/CloseLeadPanel'
+import { friendlyDbError } from '../lib/db/errors'
+import {
+  EMPTY_LOAN_REQ, LOAN_PURPOSES, NEEDED_BY, DECISION_MAKERS, CO_APPLICANTS, SHOP_AGES,
+  PROPERTY_TYPES, buildQualificationPayload, missingQualificationAnswers, canSubmitQualification, lakhLabel,
+} from '../logic/qualification'
 
 // Flat tag → label map for sub-problems
 const SUB_LABEL = {}
 PROBLEMS.forEach(p => p.subProblems.forEach(sp => { SUB_LABEL[sp.tag] = sp.label }))
-
-
-const EMPTY_LOAN_REQ = {
-  loanRequired: '', familyIncome: '', hasExistingLoan: null,
-  totalLoanAmount: '', totalEmi: '',
-}
 
 // Digits only — amounts and tenures are always whole numbers here
 const digits = v => String(v ?? '').replace(/[^0-9]/g, '')
@@ -60,6 +59,40 @@ function Row({ label, value, valueClass = 'text-slate-700' }) {
   )
 }
 
+// One question answered by tapping. `multi` toggles items in an array value.
+// Chips are 44px tall so they can be hit with a thumb while standing.
+function ChipQuestion({ label, options, value, onChange, multi = false, cols = 2 }) {
+  const isOn = opt => (multi ? (value || []).includes(opt) : value === opt)
+  function tap(opt) {
+    // Tapping the selected chip clears it (yes/no answers clear to "unanswered").
+    if (!multi) return onChange(value === opt ? (typeof opt === 'boolean' ? null : '') : opt)
+    const list = value || []
+    onChange(list.includes(opt) ? list.filter(v => v !== opt) : [...list, opt])
+  }
+  return (
+    <div>
+      <p className="text-[11px] font-bold text-slate-600">{label}</p>
+      <div className={`grid gap-1.5 mt-1 ${cols === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        {options.map(([optLabel, optValue = optLabel]) => (
+          <button
+            key={optLabel}
+            type="button"
+            aria-pressed={isOn(optValue)}
+            onClick={() => tap(optValue)}
+            className={`min-h-[44px] px-2 rounded-xl border-2 text-xs font-semibold text-left active:scale-95 transition-all
+              ${isOn(optValue) ? 'border-brand-400 bg-white text-brand-700' : 'border-slate-200 bg-white text-slate-600'}`}
+          >
+            {optLabel}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const asOptions = list => list.map(v => [v])
+const YES_NO    = [['Haan', true], ['Nahi', false]]
+
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function S_Workspace() {
   const {
@@ -79,6 +112,7 @@ export default function S_Workspace() {
   const salesman = getCurrentUser()
   const [response,      setResponse]      = useState(null)
   const [responseSaving, setResponseSaving] = useState(false)
+  const [responseError,  setResponseError]  = useState(null)
 
   // ── Follow-up reminder ────────────────────────────────────────────────────
   const [openReminder,   setOpenReminder]   = useState(null)
@@ -95,6 +129,7 @@ export default function S_Workspace() {
   const [loanReq,       setLoanReq]       = useState(EMPTY_LOAN_REQ)
   const [loanReqSaving, setLoanReqSaving] = useState(false)
   const [loanReqSaved,  setLoanReqSaved]  = useState(false)
+  const [loanReqError,  setLoanReqError]  = useState(null)
 
   // ── Notes ─────────────────────────────────────────────────────────────────
   const [notes,      setNotes]      = useState([])
@@ -132,16 +167,22 @@ export default function S_Workspace() {
   }, [activeCustomer?.id])
 
   async function handleResponse(value) {
-    if (responseSaving) return
-    setResponse(value || null)
-    if (!value) return
+    if (responseSaving || !value) return
+    const previous = response
+    setResponse(value)
+    setResponseError(null)
     setResponseSaving(true)
     try {
-      // "Nahi" moves an active lead to Nurture; "Interested" brings it back (DB rule).
+      // "Nahi" moves an active lead to Nurture; "Interested" brings it back and
+      // moves the stage to Interested (DB rules, migrations 009 + 015).
       const settled = await saveCustomerResponse(activeCustomer.id, value, salesman)
       updateActiveCustomer(settled)
-    } catch (_) {}
-    setResponseSaving(false)
+    } catch (err) {
+      setResponse(previous)
+      setResponseError(friendlyDbError(err, 'Response save nahi hua. Dobara try karein.'))
+    } finally {
+      setResponseSaving(false)
+    }
   }
 
   async function quickSetReminder(days) {
@@ -221,30 +262,33 @@ export default function S_Workspace() {
   function setLoanField(key, value) {
     setLoanReq(prev => ({ ...prev, [key]: value }))
     setLoanReqSaved(false)
+    setLoanReqError(null)
   }
 
+  // Submits the qualification answers for the manager to review. The agent
+  // does not decide: a manager/admin marks the lead Qualified (or not) from
+  // the admin console after reading these answers.
   async function handleSaveLoanReq() {
     if (loanReqSaving) return
     setLoanReqSaving(true)
+    setLoanReqError(null)
     try {
-      const hasLoan = loanReq.hasExistingLoan === true
-      const payload = {
-        loanRequired:    num(loanReq.loanRequired),
-        familyIncome:    num(loanReq.familyIncome),
-        hasExistingLoan: loanReq.hasExistingLoan,
-        totalLoanAmount: hasLoan ? num(loanReq.totalLoanAmount) : 0,
-        totalEmi:        hasLoan ? num(loanReq.totalEmi)        : 0,
-      }
+      const payload = buildQualificationPayload(loanReq, new Date())
       await saveLoanRequirement(activeCustomer.id, payload, salesman)
 
       // Feed the ROI calculator — these stay editable there
       if (payload.loanRequired) update('loanAmount', payload.loanRequired)
       if (payload.familyIncome) update('familyIncome', payload.familyIncome)
-      update('existingLoan', hasLoan)
+      update('existingLoan', payload.hasExistingLoan === true)
       update('existingEMI', payload.totalEmi)
 
+      setLoanReq(prev => ({ ...prev, submittedAt: payload.submittedAt }))
       setLoanReqSaved(true)
-    } catch (_) {} finally { setLoanReqSaving(false) }
+    } catch (err) {
+      setLoanReqError(friendlyDbError(err, 'Save nahi hua. Dobara try karein.'))
+    } finally {
+      setLoanReqSaving(false)
+    }
   }
 
   // ── Voice dictation for notes (browser Web Speech API, no dependency) ─────
@@ -296,7 +340,7 @@ export default function S_Workspace() {
   const leadStatus   = getStatus(activeCustomer.status)
   const engagementDone = !!activeCustomer.engagementFilled
   const painDone       = !!activeCustomer.painFilled
-  const roiDone        = !!activeCustomer.roiFilled || hasReachedStage(activeCustomer.stage, 'roi_shown')
+  const roiDone        = !!activeCustomer.roiFilled || stageShowsRoi(activeCustomer.stage)
   const pain           = activeCustomer.painData || {}
 
   // ── Derived values ────────────────────────────────────────────────────────
@@ -380,6 +424,10 @@ export default function S_Workspace() {
   // Mirrors the isCreatedToday rule on lead deletion in S_Dashboard.
   const totalExistingLoan = num(loanReq.totalLoanAmount)
   const totalExistingEMI  = num(loanReq.totalEmi)
+  const qualMissing       = missingQualificationAnswers(loanReq)
+  const qualCanSubmit     = canSubmitQualification(loanReq)
+  const qualQualified     = hasReachedStage(activeCustomer.stage, 'qualified')
+  const showQualification = response === 'interested' || !!loanReq.submittedAt
 
   const canDeleteReminder = openReminder?.created_at
     ? new Date(openReminder.created_at).toDateString() === new Date().toDateString()
@@ -641,101 +689,167 @@ export default function S_Workspace() {
             <option value='thinking'>🟡 Soch Raha</option>
             <option value='not_interested'>🔴 Nahi</option>
           </select>
+          {responseError && (
+            <p role="alert" className="text-xs text-red-600 font-semibold mt-2">⚠️ {responseError}</p>
+          )}
         </div>
 
-        {/* ── Loan Requirement (only when Interested) ─────────────────────── */}
-        {response === 'interested' && (
-          <Section title="Loan Requirement" emoji="💰" defaultOpen>
-            {/* Total of all existing loans */}
-            {totalExistingLoan > 0 && (
-              <div className="mb-3 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2.5">
-                <p className="text-[10px] font-bold text-brand-500 uppercase tracking-widest">Total Existing Loan</p>
-                <p className="text-lg font-extrabold text-brand-700 leading-tight">₹{totalExistingLoan.toLocaleString('en-IN')}</p>
-                {totalExistingEMI > 0 && (
-                  <p className="text-[11px] font-semibold text-slate-500">Total EMI: ₹{totalExistingEMI.toLocaleString('en-IN')}/month</p>
-                )}
+        {/* ── Qualification (asked once the customer is Interested) ───────── */}
+        {/* The agent records answers; a manager reviews them and qualifies. */}
+        {showQualification && (
+          <Section title="Loan Qualification" emoji="💰" defaultOpen>
+            {qualQualified ? (
+              <div className="mb-3 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
+                <p className="text-xs font-bold text-emerald-700">✅ Manager ne lead Qualified kar di</p>
               </div>
+            ) : loanReq.submittedAt ? (
+              <div className="mb-3 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2.5">
+                <p className="text-xs font-bold text-brand-700">📨 Manager review ke liye bhej diya</p>
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  {new Date(loanReq.submittedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
+                  {' · '}badlav karke dobara bhej sakte ho
+                </p>
+              </div>
+            ) : (
+              <p className="mb-3 text-[11px] text-slate-600">
+                "Bas 2 minute — taaki sahi loan amount aur EMI bata sakein."
+              </p>
             )}
 
-            <div className="space-y-2.5">
-              {/* Loan required */}
+            <div className="space-y-3.5">
+              {/* ① Amount and purpose */}
               <div>
-                <label className="text-[11px] font-bold text-slate-500">💵 Kitna loan chahiye?</label>
+                <label htmlFor="q-loan" className="text-[11px] font-bold text-slate-600">💵 Kitna loan chahiye?</label>
                 <input
+                  id="q-loan"
                   type="tel"
-                  value={loanReq.loanRequired}
+                  inputMode="numeric"
+                  value={loanReq.loanRequired ? Number(loanReq.loanRequired).toLocaleString('en-IN') : ''}
                   onChange={e => setLoanField('loanRequired', digits(e.target.value))}
-                  placeholder="500000"
-                  className="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand-400"
+                  placeholder="5,00,000"
+                  className="w-full mt-1 min-h-[44px] border border-slate-200 rounded-xl px-3 text-sm font-semibold text-slate-700 outline-none focus:border-brand-400"
                 />
+                {lakhLabel(loanReq.loanRequired) && (
+                  <p className="text-[11px] text-slate-600 mt-0.5">= ₹{lakhLabel(loanReq.loanRequired)}</p>
+                )}
               </div>
+              <ChipQuestion label="Kis kaam ke liye?" options={asOptions(LOAN_PURPOSES)}
+                value={loanReq.loanPurpose} onChange={v => setLoanField('loanPurpose', v)} />
 
-              {/* Family income */}
+              {/* ② When */}
+              <ChipQuestion label="Kab tak chahiye?" options={asOptions(NEEDED_BY)} cols={3}
+                value={loanReq.neededBy} onChange={v => setLoanField('neededBy', v)} />
+
+              {/* ③ Income and existing loans */}
               <div>
-                <label className="text-[11px] font-bold text-slate-500">👨‍👩‍👧 Total monthly family income</label>
+                <label htmlFor="q-income" className="text-[11px] font-bold text-slate-600">👨‍👩‍👧 Ghar ki total mahine ki income</label>
                 <input
+                  id="q-income"
                   type="tel"
-                  value={loanReq.familyIncome}
+                  inputMode="numeric"
+                  value={loanReq.familyIncome ? Number(loanReq.familyIncome).toLocaleString('en-IN') : ''}
                   onChange={e => setLoanField('familyIncome', digits(e.target.value))}
-                  placeholder="50000"
-                  className="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand-400"
+                  placeholder="50,000"
+                  className="w-full mt-1 min-h-[44px] border border-slate-200 rounded-xl px-3 text-sm font-semibold text-slate-700 outline-none focus:border-brand-400"
                 />
               </div>
-
-              {/* Existing loan yes/no */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-500">🏦 Koi existing loan hai?</label>
-                <div className="flex gap-2 mt-1">
-                  {[['Haan', true], ['Nahi', false]].map(([label, val]) => (
-                    <button
-                      key={label}
-                      onClick={() => setLoanField('hasExistingLoan', val)}
-                      className={`flex-1 py-2 rounded-xl border text-xs font-bold active:scale-95 transition-all
-                        ${loanReq.hasExistingLoan === val
-                          ? 'bg-brand-600 border-brand-600 text-white'
-                          : 'bg-white border-slate-200 text-slate-500'}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Existing loan totals */}
+              <ChipQuestion label="🏦 Koi existing loan hai?" options={YES_NO}
+                value={loanReq.hasExistingLoan} onChange={v => setLoanField('hasExistingLoan', v)} />
               {loanReq.hasExistingLoan === true && (
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[11px] font-bold text-slate-500">Total loan amount</label>
+                    <label htmlFor="q-loan-total" className="text-[11px] font-bold text-slate-600">Total loan amount</label>
                     <input
+                      id="q-loan-total"
                       type="tel"
-                      value={loanReq.totalLoanAmount}
+                      inputMode="numeric"
+                      value={loanReq.totalLoanAmount ? Number(loanReq.totalLoanAmount).toLocaleString('en-IN') : ''}
                       onChange={e => setLoanField('totalLoanAmount', digits(e.target.value))}
-                      placeholder="450000"
-                      className="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand-400"
+                      placeholder="4,50,000"
+                      className="w-full mt-1 min-h-[44px] border border-slate-200 rounded-xl px-3 text-sm font-semibold text-slate-700 outline-none focus:border-brand-400"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-slate-500">Total EMI</label>
+                    <label htmlFor="q-emi" className="text-[11px] font-bold text-slate-600">Total EMI / mahina</label>
                     <input
+                      id="q-emi"
                       type="tel"
-                      value={loanReq.totalEmi}
+                      inputMode="numeric"
+                      value={loanReq.totalEmi ? Number(loanReq.totalEmi).toLocaleString('en-IN') : ''}
                       onChange={e => setLoanField('totalEmi', digits(e.target.value))}
-                      placeholder="12000"
-                      className="w-full mt-1 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand-400"
+                      placeholder="12,000"
+                      className="w-full mt-1 min-h-[44px] border border-slate-200 rounded-xl px-3 text-sm font-semibold text-slate-700 outline-none focus:border-brand-400"
                     />
                   </div>
                 </div>
               )}
+              {totalExistingLoan > 0 && (
+                <p className="text-[11px] font-semibold text-slate-600">
+                  Total existing loan ₹{totalExistingLoan.toLocaleString('en-IN')}
+                  {totalExistingEMI > 0 && ` · EMI ₹${totalExistingEMI.toLocaleString('en-IN')}/mahina`}
+                </p>
+              )}
+
+              {/* ④ Who decides */}
+              <ChipQuestion label="Faisla kaun lega?" options={asOptions(DECISION_MAKERS)}
+                value={loanReq.decisionMaker} onChange={v => setLoanField('decisionMaker', v)} />
+              <ChipQuestion label="Co-applicant kaun banega?" options={asOptions(CO_APPLICANTS)} cols={3}
+                value={loanReq.coApplicant} onChange={v => setLoanField('coApplicant', v)} />
+
+              {/* ⑤ Track record */}
+              <ChipQuestion label="Dukaan kitne saal se chal rahi hai?" options={asOptions(SHOP_AGES)}
+                value={loanReq.shopAge} onChange={v => setLoanField('shopAge', v)} />
+              <ChipQuestion label="Kabhi koi EMI bounce / overdue hui?" options={YES_NO}
+                value={loanReq.pastBounce} onChange={v => setLoanField('pastBounce', v)} />
+
+              {/* ⑥ Property (information for the manager) */}
+              <ChipQuestion label="🏠 Apni koi property hai?" options={YES_NO}
+                value={loanReq.hasProperty} onChange={v => setLoanField('hasProperty', v)} />
+              {loanReq.hasProperty === true && (
+                <ChipQuestion label="Kis type ki? (ek se zyada chun sakte ho)" options={asOptions(PROPERTY_TYPES)} multi
+                  value={loanReq.propertyTypes} onChange={v => setLoanField('propertyTypes', v)} />
+              )}
+
+              {/* Consent */}
+              <label className="flex items-start gap-2.5 min-h-[44px] px-3 py-2.5 rounded-xl border-2 border-slate-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={loanReq.consent === true}
+                  onChange={e => setLoanField('consent', e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-brand-600 flex-shrink-0"
+                />
+                <span className="text-xs font-semibold text-slate-700">
+                  Customer ne loan ke liye yeh details share karne ki permission di
+                </span>
+              </label>
+
+              {qualMissing.length > 0 && (
+                <p className="text-[11px] text-amber-700 font-semibold">
+                  Baaki sawaal ({qualMissing.length}): {qualMissing.join(', ')}
+                </p>
+              )}
+              {loanReqError && (
+                <p role="alert" className="text-xs text-red-600 font-semibold">⚠️ {loanReqError}</p>
+              )}
 
               <button
+                type="button"
                 onClick={handleSaveLoanReq}
-                disabled={loanReqSaving}
-                className="w-full py-2.5 rounded-xl bg-brand-600 text-white text-xs font-bold active:scale-95 disabled:opacity-40"
+                disabled={loanReqSaving || !qualCanSubmit}
+                className="w-full min-h-[44px] rounded-xl bg-brand-600 text-white text-sm font-bold active:scale-95 disabled:opacity-40"
               >
-                {loanReqSaving ? 'Saving...' : loanReqSaved ? '✅ Saved' : 'Save Loan Details'}
+                {loanReqSaving ? 'Bhej rahe hain...'
+                  : loanReqSaved ? '✅ Manager ko bhej diya'
+                  : loanReq.submittedAt ? 'Update karke dobara bhejo'
+                  : 'Manager ko review ke liye bhejo →'}
               </button>
+              {!qualCanSubmit && (
+                <p className="text-[11px] text-slate-600 text-center">
+                  Bhejne ke liye loan amount aur customer ki permission zaroori hai
+                </p>
+              )}
               {loanReqSaved && (
-                <p className="text-[10px] text-green-600 text-center">
+                <p className="text-[11px] text-green-700 text-center">
                   ROI calculator me bhi bhar diya — wahan edit kar sakte ho
                 </p>
               )}

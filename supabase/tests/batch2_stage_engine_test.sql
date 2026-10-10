@@ -1,6 +1,6 @@
 -- ============================================================
 -- Batch 2 stage-engine checks — run in the Supabase SQL Editor AFTER
--- migrations 007 AND 008.
+-- migrations 007 AND 008 (and 015, which brings the live ladder to 7 stages).
 --
 -- Any failed check stops with "FAIL n: ...". If all pass, the last statement
 -- deliberately stops with "ALL 12 BATCH 2 CHECKS PASSED" (expected: it rolls
@@ -20,8 +20,8 @@ DO $$ BEGIN
   IF (SELECT sales_id IS NULL FROM t_users) THEN
     RAISE EXCEPTION 'SETUP: need one approved sales user';
   END IF;
-  IF (SELECT COUNT(*) FROM public.stage_defs WHERE is_live) <> 5 THEN
-    RAISE EXCEPTION 'FAIL 1: expected 5 live stages, found %', (SELECT COUNT(*) FROM public.stage_defs WHERE is_live);
+  IF (SELECT COUNT(*) FROM public.stage_defs WHERE is_live) <> 7 THEN
+    RAISE EXCEPTION 'FAIL 1: expected 7 live stages, found %', (SELECT COUNT(*) FROM public.stage_defs WHERE is_live);
   END IF;
   -- 008 set 3, 014 set 2; the checks below use whatever is configured.
   IF (SELECT min_photos FROM public.stage_defs WHERE key = 'visited') < 1 THEN

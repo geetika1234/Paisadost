@@ -243,7 +243,7 @@ export async function updateCustomer(customerId, data) {
 export async function getCustomerStage(customerId) {
   const { data, error } = await supabase
     .from('customers')
-    .select('stage, stage_rank, status')
+    .select('stage, stage_rank, status, status_reason')
     .eq('customer_id', customerId)
     .single()
   if (error) throw error

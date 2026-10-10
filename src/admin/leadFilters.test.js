@@ -11,7 +11,7 @@ describe('lead filters in the URL', () => {
   it('round-trips every filter', () => {
     const f = {
       ...DEFAULT_FILTERS, search: 'Ram', stage: 'visited', status: 'closed', assignee: 'none',
-      area: 'Jaipur', from: '2026-09-01', to: '2026-09-30', inactive: true, overdue: true, sort: 'activity_asc',
+      response: 'thinking', area: 'Jaipur', from: '2026-09-01', to: '2026-09-30', inactive: true, overdue: true, sort: 'activity_asc',
     }
     expect(filtersFromParams(paramsFromFilters(f))).toEqual(f)
     expect(hasActiveFilters(f)).toBe(true)
@@ -22,6 +22,11 @@ describe('lead filters in the URL', () => {
     expect(f.inactive).toBe(true)
     expect(f.sort).toBe('activity_asc')
     expect(f.status).toBe('open')
+  })
+
+  it('ignores unknown response values', () => {
+    expect(filtersFromParams(new URLSearchParams('response=maybe')).response).toBe('all')
+    expect(filtersFromParams(new URLSearchParams('response=none')).response).toBe('none')
   })
 
   it('ignores malformed dates and unknown sorts', () => {

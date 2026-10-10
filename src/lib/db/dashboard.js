@@ -246,8 +246,9 @@ export async function getLatestPainEvent(customerId) {
  */
 export async function saveCustomerResponse(customerId, response, salesman) {
   await addEvent(customerId, 'customer_response', { response }, salesman)
-  const { status, status_reason } = await getCustomerStage(customerId)
-  return { status, statusReason: status_reason }
+  // "Interested" can also move the stage (migration 015), so return both.
+  const { stage, status, status_reason } = await getCustomerStage(customerId)
+  return { stage, status, statusReason: status_reason }
 }
 
 // ── Save visit ────────────────────────────────────────────────────────────────

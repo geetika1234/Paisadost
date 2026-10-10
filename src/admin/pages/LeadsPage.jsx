@@ -7,6 +7,7 @@ import {
 } from '../../lib/db/admin'
 import { friendlyDbError } from '../../lib/db/errors'
 import { STAGES, STATUSES } from '../../logic/stages'
+import { RESPONSES, getResponse } from '../../logic/responses'
 import { filtersFromParams, paramsFromFilters, hasActiveFilters } from '../leadFilters'
 import { useDocumentTitle, StageChip, StatusChip, formatDate, relativeDays, ErrorBanner } from '../ui'
 import LeadDrawer from '../components/LeadDrawer'
@@ -164,6 +165,8 @@ export default function LeadsPage() {
             options={[['all', 'Saare stages'], ...STAGES.map(s => [s.key, s.label])]} />
           <Select label="Status" value={filters.status} onChange={v => updateFilters({ status: v })}
             options={[['open', 'Chalu (Active + Nurture)'], ['closed', 'Band'], ['all', 'Saare status'], ...STATUSES.map(s => [s.key, s.label])]} />
+          <Select label="Response" value={filters.response} onChange={v => updateFilters({ response: v })}
+            options={[['all', 'Saare responses'], ...RESPONSES.map(r => [r.key, r.label]), ['none', 'Response nahi liya']]} />
           <Select label="Agent" value={filters.assignee} onChange={v => updateFilters({ assignee: v })}
             options={[['all', 'Saare agents'], ['none', 'Bina owner'], ...agents.map(a => [a.id, a.fullname])]} />
         </div>
@@ -227,6 +230,7 @@ export default function LeadsPage() {
               <th scope="col" className="px-3 py-2">Area</th>
               <th scope="col" className="px-3 py-2">Stage</th>
               <th scope="col" className="px-3 py-2">Status</th>
+              <th scope="col" className="px-3 py-2">Response</th>
               <th scope="col" className="px-3 py-2">Agent</th>
               <th scope="col" className="px-3 py-2">Agla follow-up</th>
               <th scope="col" className="px-3 py-2">Last activity</th>
@@ -235,12 +239,12 @@ export default function LeadsPage() {
           <tbody className="divide-y divide-slate-100">
             {loading && rows.length === 0 && Array.from({ length: 8 }).map((_, i) => (
               <tr key={`sk-${i}`} aria-hidden="true">
-                <td colSpan={9} className="px-3 py-3"><div className="h-4 bg-slate-100 rounded animate-pulse" /></td>
+                <td colSpan={10} className="px-3 py-3"><div className="h-4 bg-slate-100 rounded animate-pulse" /></td>
               </tr>
             ))}
             {!loading && !error && rows.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-10 text-center text-sm text-slate-600">
+                <td colSpan={10} className="px-3 py-10 text-center text-sm text-slate-600">
                   {filtered ? (
                     <>Is filter se koi lead nahi.{' '}
                       <button type="button" onClick={() => setParams(new URLSearchParams())} className="font-semibold text-brand-600 underline underline-offset-2">Filters hatayein</button>
@@ -267,6 +271,11 @@ export default function LeadsPage() {
                 <td className="px-3 py-2 max-w-[10rem] truncate">{r.area || '—'}</td>
                 <td className="px-3 py-2"><StageChip stage={r.stage} /></td>
                 <td className="px-3 py-2"><StatusChip status={r.status} reason={r.status_reason} /></td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  {getResponse(r.latest_response)
+                    ? <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getResponse(r.latest_response).cls}`}>{getResponse(r.latest_response).label}</span>
+                    : <span className="text-slate-400">—</span>}
+                </td>
                 <td className="px-3 py-2 whitespace-nowrap">{r.assignee_name || <span className="text-amber-700">Bina owner</span>}</td>
                 <td className={`px-3 py-2 whitespace-nowrap ${r.followup_overdue ? 'text-red-600 font-semibold' : ''}`}>
                   {r.next_followup_at ? formatDate(r.next_followup_at) : '—'}

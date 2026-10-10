@@ -71,6 +71,20 @@ describe('applyLeadFilters', () => {
     expect(calls.find(c => c[0] === 'order')).toEqual(['order', 'next_followup_at', { ascending: true, nullsFirst: false }])
   })
 
+  it('filters by latest customer response, including leads with none', () => {
+    const thinking = recorder()
+    applyLeadFilters(thinking.b, { ...DEFAULT_FILTERS, response: 'thinking' })
+    expect(thinking.calls).toContainEqual(['eq', 'latest_response', 'thinking'])
+
+    const none = recorder()
+    applyLeadFilters(none.b, { ...DEFAULT_FILTERS, response: 'none' })
+    expect(none.calls).toContainEqual(['is', 'latest_response', null])
+
+    const all = recorder()
+    applyLeadFilters(all.b, DEFAULT_FILTERS)
+    expect(all.calls.some(c => c[1] === 'latest_response')).toBe(false)
+  })
+
   it('filters closed leads and a specific agent', () => {
     const { b, calls } = recorder()
     applyLeadFilters(b, { ...DEFAULT_FILTERS, status: 'closed', assignee: 'agent-1' })

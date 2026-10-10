@@ -26,6 +26,7 @@ export const DEFAULT_FILTERS = {
   stage:    'all',
   status:   'open',       // 'open' | 'closed' | 'all' | <status key>
   assignee: 'all',        // 'all' | 'none' | <profile id>
+  response: 'all',        // 'all' | 'none' | interested | thinking | not_interested (latest response)
   area:     '',
   from:     '',           // yyyy-mm-dd, created on/after
   to:       '',           // yyyy-mm-dd, created on/before
@@ -61,6 +62,9 @@ export function applyLeadFilters(query, f = DEFAULT_FILTERS, now = new Date()) {
 
   if (f.assignee === 'none')                    q = q.is('assigned_to', null)
   else if (f.assignee && f.assignee !== 'all')  q = q.eq('assigned_to', f.assignee)
+
+  if (f.response === 'none')                    q = q.is('latest_response', null)
+  else if (f.response && f.response !== 'all')  q = q.eq('latest_response', f.response)
 
   const area = sanitizeSearch(f.area)
   if (area) q = q.ilike('area', `%${area}%`)
@@ -114,6 +118,7 @@ export const EXPORT_COLUMNS = [
   ['stage',            'Stage'],
   ['status',           'Status'],
   ['status_reason',    'Status reason'],
+  ['latest_response',  'Response'],
   ['assignee_name',    'Agent'],
   ['created_at',       'Created'],
   ['last_activity_at', 'Last activity'],

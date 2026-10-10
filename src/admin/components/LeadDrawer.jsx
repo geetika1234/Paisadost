@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getLeadDetail, bulkAssign } from '../../lib/db/admin'
-import { changeLeadStatus } from '../../lib/db/status'
+import { changeLeadStatus, qualifyLead } from '../../lib/db/status'
 import { friendlyDbError } from '../../lib/db/errors'
-import { STAGES, STATUSES, getStage, getStatus, hasReachedStage } from '../../logic/stages'
+import { STAGES, STATUSES, getStage, getStatus, hasReachedStage, isClosedStatus } from '../../logic/stages'
+import { qualificationRows, missingQualificationAnswers } from '../../logic/qualification'
+import { getResponse } from '../../logic/responses'
 import StoredPhoto from '../../components/StoredPhoto'
 import { StageChip, StatusChip, formatDate, ErrorBanner, Spinner } from '../ui'
 
@@ -21,11 +23,12 @@ const EVENT_LABEL = {
   login_started:    'File login',
   customer_response:'Customer response',
   note_added:       'Note',
-  loan_requirement: 'Loan requirement',
+  loan_requirement: 'Qualification answers',
+  lead_qualified:   'Manager ne qualify kiya',
   status_changed:   'Status badla',
 }
 
-const RESPONSE_LABEL = { interested: 'Interested', thinking: 'Soch Raha', not_interested: 'Nahi' }
+
 
 /**
  * Right-hand panel for one lead. A dialog: Esc or the backdrop closes it and
@@ -154,8 +157,12 @@ function Summary({ detail, agents, actorName, onChanged }) {
             )
           })}
         </ol>
-        <p className="mt-2 text-xs text-slate-500">Stage agent ke kaam se apne aap badhta hai (visit, pain, ROI, file login).</p>
+        <p className="mt-2 text-xs text-slate-500">
+          Stage agent ke kaam se apne aap badhta hai (visit, pain, ROI, interested, file login). Qualified sirf manager/admin karte hain.
+        </p>
       </div>
+
+      <QualificationReview lead={lead} events={events} actorName={actorName} onChanged={onChanged} />
 
       {photos.length > 0 && (
         <div>
@@ -172,6 +179,108 @@ function Summary({ detail, agents, actorName, onChanged }) {
       <ReassignForm lead={lead} agents={agents} onChanged={onChanged} />
       <StatusForm lead={lead} actorName={actorName} onChanged={onChanged} />
     </>
+  )
+}
+
+// The agent submits qualification answers from the mobile workspace once the
+// customer is Interested; the manager reads them here and decides.
+function QualificationReview({ lead, events, actorName, onChanged }) {
+  const answers   = events.find(e => e.event_type === 'loan_requirement')
+  const qualified = events.find(e => e.event_type === 'lead_qualified')
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(null)
+  const [msg,  setMsg]  = useState(null)
+
+  const reachedInterested = hasReachedStage(lead.stage, 'interested')
+  if (!answers && !reachedInterested) return null
+
+  const isQualified = hasReachedStage(lead.stage, 'qualified')
+  const canDecide   = !!answers && !isQualified && !isClosedStatus(lead.status)
+  const missing     = answers ? missingQualificationAnswers(answers.data || {}) : []
+  const submittedAt = answers?.data?.submittedAt || answers?.created_at
+
+  async function run(kind) {
+    if (busy) return
+    if (kind !== 'qualify' && !note.trim()) {
+      setMsg({ ok: false, text: 'Reason likhna zaroori hai.' })
+      return
+    }
+    setBusy(kind); setMsg(null)
+    try {
+      if (kind === 'qualify') {
+        await qualifyLead(lead.customer_id, note, actorName)
+        setMsg({ ok: true, text: 'Lead Qualified ho gayi.' })
+      } else {
+        const settled = await changeLeadStatus(lead.customer_id, { status: kind, reason: note }, actorName)
+        setMsg({ ok: true, text: `Status ab ${getStatus(settled.status).label} hai.` })
+      }
+      setNote('')
+      onChanged()
+    } catch (err) {
+      setMsg({ ok: false, text: friendlyDbError(err) })
+    } finally { setBusy(null) }
+  }
+
+  return (
+    <section aria-labelledby="qual-title" className="border-t border-slate-200 pt-5 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 id="qual-title" className="text-sm font-semibold text-slate-900">Qualification review</h3>
+        {isQualified && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Qualified</span>}
+      </div>
+
+      {!answers ? (
+        <p className="text-sm text-slate-600">Agent ne abhi qualification answers nahi bheje.</p>
+      ) : (
+        <>
+          <p className="text-xs text-slate-500">
+            {answers.salesman_id || 'Agent'} ne bheja · {formatDate(submittedAt, true)}
+          </p>
+          <dl className="grid grid-cols-[9rem_1fr] gap-y-1.5 text-sm">
+            {qualificationRows(answers.data || {}).map(([label, value]) => (
+              <div key={label} className="contents">
+                <dt className="text-slate-500">{label}</dt>
+                <dd className={value === '—' ? 'text-slate-400' : 'text-slate-900'}>{value}</dd>
+              </div>
+            ))}
+          </dl>
+          {missing.length > 0 && (
+            <p className="text-xs text-amber-700">Jawab nahi mile: {missing.join(', ')}</p>
+          )}
+        </>
+      )}
+
+      {isQualified && qualified && (
+        <p className="text-xs text-slate-600">
+          {qualified.salesman_id || 'Manager'} ne qualify kiya · {formatDate(qualified.created_at, true)}
+          {qualified.data?.note ? ` · ${qualified.data.note}` : ''}
+        </p>
+      )}
+
+      {canDecide && (
+        <div className="space-y-2">
+          <label className="block">
+            <span className="text-xs font-medium text-slate-600">Note / reason (Nurture aur Not qualified ke liye zaroori)</span>
+            <input value={note} onChange={e => setNote(e.target.value.slice(0, 300))}
+              className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            <button type="button" onClick={() => run('qualify')} disabled={!!busy}
+              className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold disabled:opacity-40">
+              {busy === 'qualify' ? '…' : 'Qualify karein'}
+            </button>
+            <button type="button" onClick={() => run('nurture')} disabled={!!busy}
+              className="px-3 py-2 rounded-lg border border-amber-300 text-amber-800 bg-amber-50 text-sm font-semibold disabled:opacity-40">
+              {busy === 'nurture' ? '…' : 'Nurture (baad me)'}
+            </button>
+            <button type="button" onClick={() => run('not_qualified')} disabled={!!busy}
+              className="px-3 py-2 rounded-lg border border-slate-300 text-slate-700 text-sm font-semibold disabled:opacity-40">
+              {busy === 'not_qualified' ? '…' : 'Not qualified'}
+            </button>
+          </div>
+        </div>
+      )}
+      {msg && <p role="status" className={`text-xs ${msg.ok ? 'text-green-700' : 'text-red-600'}`}>{msg.text}</p>}
+    </section>
   )
 }
 
@@ -297,7 +406,7 @@ function Activity({ events }) {
         <li key={e.event_id} className="text-sm">
           <p className="font-medium text-slate-900">
             {EVENT_LABEL[e.event_type] || e.event_type}
-            {e.event_type === 'customer_response' && e.data?.response && `: ${RESPONSE_LABEL[e.data.response] || e.data.response}`}
+            {e.event_type === 'customer_response' && e.data?.response && `: ${getResponse(e.data.response)?.label || e.data.response}`}
             {e.event_type === 'status_changed' && e.data?.status && ` → ${getStatus(e.data.status).label}`}
           </p>
           {e.event_type === 'note_added'     && e.data?.text   && <p className="text-slate-700">{e.data.text}</p>}

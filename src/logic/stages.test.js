@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  STAGES, getStage, hasReachedStage,
+  STAGES, getStage, hasReachedStage, stageShowsRoi,
   getStatus, isClosedStatus, matchStatusView, AGENT_CLOSE_REASONS,
 } from './stages'
 
@@ -14,8 +14,10 @@ const appSources = readdirSync(SRC_DIR, { recursive: true })
   .map(f => ({ file: f, text: readFileSync(join(SRC_DIR, f), 'utf8') }))
 
 describe('stage vocabulary', () => {
-  it('lists the five live stages in rank order', () => {
-    expect(STAGES.map(s => s.key)).toEqual(['new', 'visited', 'pain_identified', 'roi_shown', 'login_started'])
+  it('lists the seven live stages in rank order', () => {
+    expect(STAGES.map(s => s.key)).toEqual([
+      'new', 'visited', 'pain_identified', 'roi_shown', 'interested', 'qualified', 'login_started',
+    ])
     const ranks = STAGES.map(s => s.rank)
     expect([...ranks].sort((a, b) => a - b)).toEqual(ranks)
   })
@@ -38,6 +40,15 @@ describe('stage vocabulary', () => {
   it('falls back to Nayi Lead for unknown stages instead of crashing', () => {
     expect(getStage(undefined).label).toBe('Nayi Lead')
     expect(getStage('garbage').label).toBe('Nayi Lead')
+  })
+
+  it('does not treat Interested or Qualified as proof that ROI was shown', () => {
+    expect(stageShowsRoi('pain_identified')).toBe(false)
+    expect(stageShowsRoi('roi_shown')).toBe(true)
+    expect(stageShowsRoi('interested')).toBe(false)
+    expect(stageShowsRoi('qualified')).toBe(false)
+    expect(stageShowsRoi('login_started')).toBe(true)
+    expect(stageShowsRoi('disbursed')).toBe(true)
   })
 
   it('keeps retired stages ranked above Login Done', () => {

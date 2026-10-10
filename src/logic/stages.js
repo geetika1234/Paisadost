@@ -5,7 +5,11 @@
  * events_apply_stage trigger, supabase/migrations/007). The app only records
  * events and displays the result, so keys and ranks here mirror stage_defs.
  *
- *   new → visited → pain_identified → roi_shown → login_started
+ *   new → visited → pain_identified → roi_shown → interested → qualified → login_started
+ *
+ * interested: a customer_response event with response 'interested' (migration 015).
+ * qualified:  a lead_qualified event, recorded by a manager/admin after
+ *             reviewing the agent's qualification answers.
  *
  * approved / disbursed are retired: nothing sets them any more, but older
  * leads may still carry them, so they keep a label and rank.
@@ -16,6 +20,8 @@ export const STAGES = [
   { key: 'visited',         label: 'Visited',    rank: 10,  event: 'visit_done',      bg: 'bg-brand-100',   text: 'text-brand-700',   dot: 'bg-brand-500'   },
   { key: 'pain_identified', label: 'Pain Done',  rank: 20,  event: 'pain_identified', bg: 'bg-purple-100',  text: 'text-purple-700',  dot: 'bg-purple-500'  },
   { key: 'roi_shown',       label: 'ROI Shown',  rank: 50,  event: 'roi_shown',       bg: 'bg-blue-100',    text: 'text-blue-700',    dot: 'bg-blue-500'    },
+  { key: 'interested',      label: 'Interested', rank: 55,  event: 'customer_response', bg: 'bg-teal-100',  text: 'text-teal-700',    dot: 'bg-teal-500'    },
+  { key: 'qualified',       label: 'Qualified',  rank: 60,  event: 'lead_qualified',  bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
   { key: 'login_started',   label: 'Login Done', rank: 80,  event: 'login_started',   bg: 'bg-green-100',   text: 'text-green-700',   dot: 'bg-green-500'   },
 ]
 
@@ -46,6 +52,15 @@ export function stageChipClass(key) {
 /** True once the lead has reached ROI Shown or beyond. */
 export function hasReachedStage(stageKey, targetKey) {
   return getStage(stageKey).rank >= getStage(targetKey).rank
+}
+
+/**
+ * Whether the stage alone proves ROI was shown. Interested and Qualified rank
+ * above ROI Shown but can be reached without it, so they prove nothing; a
+ * lead at ROI Shown or at Login Done and beyond does.
+ */
+export function stageShowsRoi(stageKey) {
+  return getStage(stageKey).key === 'roi_shown' || hasReachedStage(stageKey, 'login_started')
 }
 
 /**

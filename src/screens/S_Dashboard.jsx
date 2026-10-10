@@ -9,7 +9,7 @@ import { deleteCustomer } from '../lib/db/customers'
 import { friendlyDbError } from '../lib/db/errors'
 import { PROBLEMS } from '../logic/problems'
 import { calcEMI, calculateCOD, calculateROI } from '../logic/calculations'
-import { getStage, hasReachedStage, getStatus, isClosedStatus, matchStatusView } from '../logic/stages'
+import { getStage, stageShowsRoi, getStatus, isClosedStatus, matchStatusView } from '../logic/stages'
 
 // Flat tag → label map for all sub-problems
 const SUB_LABEL = {}
@@ -233,7 +233,7 @@ function CustomerRow({ customer, onFileLogin, onSetActive, onDelete, onStatusCha
                        : response === 'not_interested' ? '🔴 Nahi'
                        : null
   const stageLabel     = getStage(customer.stage).label
-  const roiShown       = hasReachedStage(customer.stage, 'roi_shown') || !!roiData
+  const roiShown       = stageShowsRoi(customer.stage) || !!roiData
 
   // ROI line
   let roiLine = null

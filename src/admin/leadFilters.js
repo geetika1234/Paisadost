@@ -1,4 +1,5 @@
 import { DEFAULT_FILTERS, SORTS } from '../lib/db/admin'
+import { getResponse } from '../logic/responses'
 
 /**
  * Leads-page filters <-> URL query string, so a filtered view survives
@@ -16,6 +17,8 @@ export function filtersFromParams(params) {
   if (get('stage'))    f.stage    = get('stage')
   if (get('status'))   f.status   = get('status')
   if (get('assignee')) f.assignee = get('assignee')
+  const response = get('response')
+  if (response === 'none' || getResponse(response)) f.response = response
   if (get('area'))     f.area     = get('area').slice(0, 60)
   if (DATE_RE.test(get('from') || '')) f.from = get('from')
   if (DATE_RE.test(get('to')   || '')) f.to   = get('to')
@@ -30,7 +33,8 @@ export function paramsFromFilters(f, extra = {}) {
   if (f.stage    !== DEFAULT_FILTERS.stage)    p.set('stage', f.stage)
   if (f.status   !== DEFAULT_FILTERS.status)   p.set('status', f.status)
   if (f.assignee !== DEFAULT_FILTERS.assignee) p.set('assignee', f.assignee)
-  if (f.area)                            p.set('area', f.area)
+  if (f.response && f.response !== DEFAULT_FILTERS.response) p.set('response', f.response)
+  if (f.area)                           p.set('area', f.area)
   if (f.from)                            p.set('from', f.from)
   if (f.to)                              p.set('to', f.to)
   for (const k of BOOL_KEYS) if (f[k])   p.set(k, '1')
